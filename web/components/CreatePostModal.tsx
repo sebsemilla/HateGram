@@ -1,6 +1,6 @@
 "use client";
-import { useRef, useState } from "react";
-import { uploadImage, postApi, fetchLinkPreview } from "@/lib/api";
+import { useRef, useState, useEffect } from "react";
+import { uploadImage, postApi, fetchLinkPreview, communityApi } from "@/lib/api";
 
 interface LinkPreview {
   url: string;
@@ -36,16 +36,25 @@ export default function CreatePostModal({ onClose, onCreated, communityId }: Pro
   const [debateEnabled, setDebateEnabled] = useState(false);
   const [debateHours, setDebateHours] = useState(24);
 
+  // Feed selector
+  const [communities, setCommunities] = useState<any[]>([]);
+  const [selectedCommunityId, setSelectedCommunityId] = useState<number | null>(null);
+
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!communityId) {
+      communityApi.list().then(setCommunities).catch(() => {});
+    }
+  }, [communityId]);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
-      const url = await uploadImage(file);
-      setImageUrl(url);
+      setImageUrl(await uploadImage(file));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -59,9 +68,8 @@ export default function CreatePostModal({ onClose, onCreated, communityId }: Pro
     setPreviewError("");
     setPreview(null);
     try {
-      const data = await fetchLinkPreview(linkInput.trim());
-      setPreview(data);
-    } catch (err: any) {
+      setPreview(await fetchLinkPreview(linkInput.trim()));
+    } catch {
       setPreviewError("No se pudo obtener la vista previa del link");
     } finally {
       setLoadingPreview(false);
@@ -72,27 +80,30 @@ export default function CreatePostModal({ onClose, onCreated, communityId }: Pro
     e.preventDefault();
     setError("");
 
-    const payload: Record<string, string> = { caption };
-
     if (tab === "photo") {
       if (!imageUrl && !caption.trim()) {
         setError("Agregá una foto o escribí algo");
         return;
       }
-      payload.image_url = imageUrl;
     } else {
       if (!preview) {
         setError("Pegá un link y cargá la vista previa primero");
         return;
       }
+    }
+
+    const payload: any = { caption };
+    if (tab === "photo") payload.image_url = imageUrl;
+    if (tab === "link" && preview) {
       payload.link_url = preview.url;
       payload.link_title = preview.title;
       payload.link_description = preview.description;
       payload.link_image = preview.image;
     }
 
-    if (communityId) payload.community_id = String(communityId);
-    if (debateEnabled) (payload as any).debate_hours = debateHours;
+    const resolvedCommunityId = communityId ?? selectedCommunityId ?? null;
+    if (resolvedCommunityId) payload.community_id = resolvedCommunityId;
+    if (debateEnabled) payload.debate_hours = debateHours;
 
     setPosting(true);
     try {
@@ -118,8 +129,8 @@ export default function CreatePostModal({ onClose, onCreated, communityId }: Pro
           <button type="button" onClick={onClose} className="text-gray-500 hover:text-white text-xl">✕</button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-800 flex-shrink-0">
+        {/* Tabs + Feed selector */}
+        <div className="flex items-stretch border-b border-gray-800 flex-shrink-0">
           {(["photo", "link"] as Tab[]).map((t) => (
             <button
               key={t}
@@ -132,38 +143,62 @@ export default function CreatePostModal({ onClose, onCreated, communityId }: Pro
               {t === "photo" ? "📷 Foto" : "🔗 Link"}
             </button>
           ))}
+
+          {/* Feed selector — only when not scoped to a community */}
+          {!communityId && (
+            <>
+              <div className="w-px bg-gray-800 my-2" />
+              <select
+                value={selectedCommunityId ?? ""}
+                onChange={(e) => setSelectedCommunityId(e.target.value ? Number(e.target.value) : null)}
+                className="flex-1 bg-transparent text-gray-400 text-xs px-3 focus:outline-none hover:text-white cursor-pointer text-center"
+              >
+                <option value="">🌐 Main</option>
+                {communities.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
 
         <div className="p-5 space-y-4 flex-1">
           {/* Tab: Foto */}
           {tab === "photo" && (
             <>
-              {/* Área de imagen */}
-              <div
-                onClick={() => fileRef.current?.click()}
-                className={`relative w-full aspect-square rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden transition
-                  ${imageUrl ? "border-transparent" : "border-gray-700 hover:border-hate-red bg-hate-light"}`}
-              >
-                {imageUrl ? (
-                  <>
-                    <img src={imageUrl} alt="preview" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition flex items-center justify-center">
-                      <span className="text-white text-sm font-semibold">Cambiar foto</span>
+              {imageUrl ? (
+                /* Compact image preview */
+                <div className="relative h-32 rounded-xl overflow-hidden border border-gray-700">
+                  <img src={imageUrl} alt="preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => { setImageUrl(""); fileRef.current && (fileRef.current.value = ""); }}
+                    className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white text-xs font-bold px-2 py-1 rounded-lg transition"
+                  >
+                    Cambiar
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileRef.current?.click()}
+                  className="relative h-32 w-full rounded-xl border-2 border-dashed border-gray-700 hover:border-hate-red bg-hate-light flex items-center justify-center cursor-pointer transition"
+                >
+                  {uploading ? (
+                    <div className="text-center">
+                      <div className="w-6 h-6 border-2 border-hate-red border-t-transparent rounded-full animate-spin mx-auto mb-1" />
+                      <p className="text-gray-500 text-xs">Subiendo...</p>
                     </div>
-                  </>
-                ) : uploading ? (
-                  <div className="text-center">
-                    <div className="w-8 h-8 border-2 border-hate-red border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                    <p className="text-gray-500 text-sm">Subiendo...</p>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <p className="text-4xl mb-2">📷</p>
-                    <p className="text-gray-400 text-sm">Tocá para elegir una foto</p>
-                    <p className="text-gray-600 text-xs mt-1">JPG, PNG, WEBP — máx 5 MB</p>
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">📷</span>
+                      <div>
+                        <p className="text-gray-400 text-sm">Elegí una foto</p>
+                        <p className="text-gray-600 text-xs">JPG, PNG, WEBP — máx 5 MB</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </>
           )}
@@ -191,19 +226,14 @@ export default function CreatePostModal({ onClose, onCreated, communityId }: Pro
 
               {previewError && <p className="text-hate-red text-sm">{previewError}</p>}
 
-              {/* Vista previa del link — estilo Facebook */}
               {preview && (
                 <div className="rounded-xl overflow-hidden border border-gray-700 bg-hate-light">
                   {preview.image && (
                     <img src={preview.image} alt={preview.title} className="w-full h-48 object-cover" />
                   )}
                   <div className="p-3">
-                    <p className="text-gray-500 text-xs uppercase mb-1">
-                      {new URL(preview.url).hostname}
-                    </p>
-                    {preview.title && (
-                      <p className="text-white font-bold text-sm leading-snug mb-1">{preview.title}</p>
-                    )}
+                    <p className="text-gray-500 text-xs uppercase mb-1">{new URL(preview.url).hostname}</p>
+                    {preview.title && <p className="text-white font-bold text-sm leading-snug mb-1">{preview.title}</p>}
                     {preview.description && (
                       <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">{preview.description}</p>
                     )}
@@ -213,7 +243,7 @@ export default function CreatePostModal({ onClose, onCreated, communityId }: Pro
             </div>
           )}
 
-          {/* Caption (ambos tabs) */}
+          {/* Caption */}
           <div>
             <textarea
               rows={3}
@@ -238,7 +268,6 @@ export default function CreatePostModal({ onClose, onCreated, communityId }: Pro
                   <p className="text-xs text-gray-500">Los usuarios votan A Favor / En Contra</p>
                 </div>
               </div>
-              {/* Toggle pill */}
               <div className={`w-10 h-6 rounded-full transition-colors flex-shrink-0 flex items-center px-0.5 ${debateEnabled ? "bg-hate-red" : "bg-gray-700"}`}>
                 <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${debateEnabled ? "translate-x-4" : "translate-x-0"}`} />
               </div>
@@ -254,9 +283,7 @@ export default function CreatePostModal({ onClose, onCreated, communityId }: Pro
                       type="button"
                       onClick={() => setDebateHours(h)}
                       className={`text-xs font-bold px-3 py-1.5 rounded-lg transition ${
-                        debateHours === h
-                          ? "bg-hate-red text-white"
-                          : "bg-hate-light text-gray-400 hover:text-white"
+                        debateHours === h ? "bg-hate-red text-white" : "bg-hate-light text-gray-400 hover:text-white"
                       }`}
                     >
                       {h}h

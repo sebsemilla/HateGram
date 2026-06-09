@@ -10,6 +10,12 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
       ...options.headers,
     },
   });
+  if (res.status === 401 && typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/login";
+    return {} as any;
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Error desconocido" }));
     const detail = Array.isArray(err.detail)
@@ -69,7 +75,8 @@ export const communityApi = {
   create: (data: object) => apiFetch("/communities/", { method: "POST", body: JSON.stringify(data) }),
   join: (slug: string) => apiFetch(`/communities/${slug}/join`, { method: "POST" }),
   leave: (slug: string) => apiFetch(`/communities/${slug}/leave`, { method: "DELETE" }),
-  feed: (slug: string) => apiFetch(`/communities/${slug}/feed`),
+  feed: (slug: string, sort = "new", view = "all") =>
+    apiFetch(`/communities/${slug}/feed?sort=${sort}&view=${view}`),
 };
 
 export const adminApi = {
@@ -137,6 +144,42 @@ export const messagesApi = {
 export const repostApi = {
   repost: (postId: number) =>
     apiFetch("/posts/", { method: "POST", body: JSON.stringify({ repost_of_id: postId }) }),
+};
+
+export type ReactionCounts = {
+  heart: number; fire: number; cringe: number; cope: number; based: number; dead: number;
+};
+export type ReactionsOut = { counts: ReactionCounts; my_reaction: string | null; total: number };
+
+export const reactionsApi = {
+  get: (postId: number): Promise<ReactionsOut> => apiFetch(`/posts/${postId}/reactions`),
+  toggle: (postId: number, reaction_type: string): Promise<ReactionsOut> =>
+    apiFetch(`/posts/${postId}/reactions`, { method: "POST", body: JSON.stringify({ reaction_type }) }),
+};
+
+export type CommentOut = {
+  id: number;
+  post_id: number;
+  user_id: number;
+  username: string;
+  display_name: string;
+  avatar_url: string;
+  content: string;
+  created_at: string;
+  parent_id: number | null;
+  score: number;
+  my_vote: number | null;
+  replies: CommentOut[];
+};
+
+export const commentsApi = {
+  get: (postId: number, sort: "top" | "new" = "top"): Promise<CommentOut[]> =>
+    apiFetch(`/comments/${postId}?sort=${sort}`),
+  create: (postId: number, content: string, parent_id?: number): Promise<CommentOut> =>
+    apiFetch(`/comments/${postId}`, { method: "POST", body: JSON.stringify({ content, parent_id }) }),
+  delete: (commentId: number) => apiFetch(`/comments/${commentId}`, { method: "DELETE" }),
+  vote: (commentId: number, vote: 1 | -1): Promise<CommentOut> =>
+    apiFetch(`/comments/${commentId}/vote`, { method: "POST", body: JSON.stringify({ vote }) }),
 };
 
 export async function fetchLinkPreview(url: string) {

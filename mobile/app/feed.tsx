@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import {
   View, Text, ScrollView, FlatList, TouchableOpacity,
-  Image, StyleSheet, Alert, ActivityIndicator, Animated, Pressable,
+  Image, StyleSheet, Alert, ActivityIndicator, Animated, TextInput, Share,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { postApi, communityApi, storyApi, StoryGroup } from "../lib/api";
+import { postApi, communityApi, storyApi, reactionsApi, commentsApi, reportApi, StoryGroup, ReactionsOut, CommentOut } from "../lib/api";
 
 type Section = "main" | "onlys" | "gay" | "lesbiana" | "hetero" | "historys" | null;
 
@@ -30,6 +30,8 @@ export default function FeedScreen() {
   const [communityPosts, setCommunityPosts] = useState<any[]>([]);
   const [joining, setJoining]             = useState(false);
   const [loading, setLoading]             = useState(false);
+  const [communityFilter, setCommunityFilter] = useState<"new"|"top"|"own"|"tagged">("new");
+  const [showCommunityMenu, setShowCommunityMenu] = useState(false);
 
   // Stories
   const [storyGroups, setStoryGroups]     = useState<StoryGroup[]>([]);
@@ -62,12 +64,22 @@ export default function FeedScreen() {
       communityApi.list("fan").then(setFanGroups).catch(console.error).finally(() => setLoading(false));
     } else if (ORIENTATION_SLUGS[section]) {
       const slug = ORIENTATION_SLUGS[section]!;
+      setCommunityFilter("new");
+      setShowCommunityMenu(false);
       Promise.all([
         communityApi.get(slug).then(setCommunity),
-        communityApi.feed(slug).then(setCommunityPosts),
+        communityApi.feed(slug, "new", "all").then(setCommunityPosts),
       ]).catch(console.error).finally(() => setLoading(false));
     }
   }, [section]);
+
+  useEffect(() => {
+    if (!section || !ORIENTATION_SLUGS[section]) return;
+    const slug = ORIENTATION_SLUGS[section]!;
+    const sort = communityFilter === "top" ? "top" : "new";
+    const view = communityFilter === "own" ? "own" : communityFilter === "tagged" ? "tagged" : "all";
+    communityApi.feed(slug, sort, view).then(setCommunityPosts).catch(console.error);
+  }, [communityFilter]);
 
   // ── FAB animation ─────────────────────────────────────────────
   useEffect(() => {
@@ -92,22 +104,29 @@ export default function FeedScreen() {
     setActiveStoryIdx(0);
   }
 
-  async function handleJoinLeave() {
-    if (!community) return;
-    const slug = ORIENTATION_SLUGS[section!]!;
+  async function handleJoin() {
+    if (!community || !section) return;
+    const slug = ORIENTATION_SLUGS[section]!;
     setJoining(true);
     try {
-      if (community.is_member) {
-        await communityApi.leave(slug);
-        setCommunity((c: any) => ({ ...c, is_member: false, member_count: c.member_count - 1 }));
-      } else {
-        await communityApi.join(slug);
-        setCommunity((c: any) => ({ ...c, is_member: true, member_count: c.member_count + 1 }));
-      }
+      await communityApi.join(slug);
+      setCommunity((c: any) => ({ ...c, is_member: true, member_count: c.member_count + 1 }));
     } catch (e: any) {
       Alert.alert("Error", e.message);
     } finally {
       setJoining(false);
+    }
+  }
+
+  async function handleLeave() {
+    if (!community || !section) return;
+    const slug = ORIENTATION_SLUGS[section]!;
+    setShowCommunityMenu(false);
+    try {
+      await communityApi.leave(slug);
+      setCommunity((c: any) => ({ ...c, is_member: false, member_count: c.member_count - 1 }));
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
     }
   }
 
@@ -229,7 +248,7 @@ export default function FeedScreen() {
                 <Text style={s.emptyText}>Sin posts aún</Text>
               </View>
             }
-            renderItem={({ item }) => <PostCard post={item} />}
+            renderItem={({ item }) => <PostCard post={item} currentUserId={user?.id} />}
           />
         )}
 
@@ -340,21 +359,59 @@ export default function FeedScreen() {
         {section && ORIENTATION_SLUGS[section] && !loading && (
           <View style={{ flex: 1 }}>
             {community && (
-              <View style={s.communityBar}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.communityName}>{community.name}</Text>
-                  <Text style={s.communityMembers}>{community.member_count} miembros</Text>
+              community.is_member ? (
+                /* ── Miembro: filtros + menú ── */
+                <View style={s.communityBar}>
+                  <View style={s.filterRow}>
+                    {(["new","top","own","tagged"] as const).map((f) => (
+                      <TouchableOpacity
+                        key={f}
+                        onPress={() => setCommunityFilter(f)}
+                        style={[s.filterBtn, communityFilter === f && s.filterBtnActive]}
+                      >
+                        <Text style={[s.filterBtnText, communityFilter === f && s.filterBtnTextActive]}>
+                          {f === "new" ? "New" : f === "top" ? "Top" : f === "own" ? "Propios" : "Tagged"}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <View style={{ position: "relative" }}>
+                    <TouchableOpacity
+                      style={s.menuBtn}
+                      onPress={() => setShowCommunityMenu((v) => !v)}
+                    >
+                      <Text style={s.menuBtnText}>⋮</Text>
+                    </TouchableOpacity>
+                    {showCommunityMenu && (
+                      <View style={s.menuDropdown}>
+                        <TouchableOpacity
+                          style={s.menuItem}
+                          onPress={() => { setShowCommunityMenu(false); router.push("/communities/create" as any); }}
+                        >
+                          <Text style={s.menuItemText}>Crear Grupo</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[s.menuItem, s.menuItemBorder]} onPress={() => setShowCommunityMenu(false)}>
+                          <Text style={s.menuItemText}>Buscar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[s.menuItem, s.menuItemBorder]} onPress={handleLeave}>
+                          <Text style={[s.menuItemText, s.menuItemDanger]}>Salir</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
                 </View>
-                <TouchableOpacity
-                  style={[s.joinBtn, community.is_member && s.joinBtnLeave]}
-                  onPress={handleJoinLeave}
-                  disabled={joining}
-                >
-                  <Text style={[s.joinBtnText, community.is_member && s.joinBtnLeaveText]}>
-                    {joining ? "..." : community.is_member ? "Salir" : "Unirse"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              ) : (
+                /* ── No miembro: Unirse ── */
+                <View style={s.communityBar}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.communityName}>{community.name}</Text>
+                    <Text style={s.communityMembers}>{community.member_count} miembros</Text>
+                  </View>
+                  <TouchableOpacity style={s.joinBtn} onPress={handleJoin} disabled={joining}>
+                    <Text style={s.joinBtnText}>{joining ? "..." : "Unirse"}</Text>
+                  </TouchableOpacity>
+                </View>
+              )
             )}
             <FlatList
               data={communityPosts}
@@ -368,7 +425,7 @@ export default function FeedScreen() {
                   </Text>
                 </View>
               }
-              renderItem={({ item }) => <PostCard post={item} />}
+              renderItem={({ item }) => <PostCard post={item} currentUserId={user?.id} />}
             />
           </View>
         )}
@@ -413,10 +470,130 @@ export default function FeedScreen() {
   );
 }
 
+// ── Reaction config ───────────────────────────────────────────────
+const REACTIONS = [
+  { key: "heart",  emoji: "❤️" },
+  { key: "fire",   emoji: "🔥" },
+  { key: "cringe", emoji: "😬" },
+  { key: "cope",   emoji: "😤" },
+  { key: "based",  emoji: "👊" },
+  { key: "dead",   emoji: "💀" },
+] as const;
+
 // ── PostCard ──────────────────────────────────────────────────────
-function PostCard({ post }: { post: any }) {
+const REPORT_REASONS = [
+  { key: "spam",                  label: "Spam" },
+  { key: "acoso",                 label: "Acoso" },
+  { key: "contenido_inapropiado", label: "Contenido inapropiado" },
+  { key: "discurso_de_odio",      label: "Discurso de odio" },
+  { key: "desinformacion",        label: "Desinformación" },
+  { key: "violencia",             label: "Violencia" },
+  { key: "otro",                  label: "Otro" },
+];
+
+function PostCard({ post, currentUserId }: { post: any; currentUserId?: number }) {
+  const [reactions, setReactions] = useState<ReactionsOut | null>(null);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<CommentOut[]>([]);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const [commentSort, setCommentSort] = useState<"top" | "new">("top");
+  const [newComment, setNewComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ id: number; username: string } | null>(null);
+
+  useEffect(() => {
+    reactionsApi.get(post.id).then(setReactions).catch(() => {});
+  }, [post.id]);
+
+  useEffect(() => {
+    if (showComments && !commentsLoaded) {
+      commentsApi.get(post.id, commentSort).then((data) => {
+        setComments(data);
+        setCommentsLoaded(true);
+      }).catch(() => {});
+    }
+  }, [showComments]);
+
+  useEffect(() => {
+    if (commentsLoaded) {
+      commentsApi.get(post.id, commentSort).then(setComments).catch(() => {});
+    }
+  }, [commentSort]);
+
+  async function handleReaction(type: string) {
+    try { setReactions(await reactionsApi.toggle(post.id, type)); } catch {}
+  }
+
+  async function handleVote(commentId: number, vote: 1 | -1) {
+    try {
+      const updated = await commentsApi.vote(commentId, vote);
+      setComments((prev) => replaceComment(prev, updated));
+    } catch {}
+  }
+
+  async function handleDeleteComment(commentId: number) {
+    try {
+      await commentsApi.delete(commentId);
+      setComments((prev) => removeComment(prev, commentId));
+    } catch {}
+  }
+
+  async function handleSubmitComment() {
+    if (!newComment.trim()) return;
+    setSubmitting(true);
+    try {
+      const created = await commentsApi.create(post.id, newComment.trim(), replyTo?.id);
+      if (replyTo) {
+        setComments((prev) => addReply(prev, replyTo.id, created));
+      } else {
+        setComments((prev) => [created, ...prev]);
+      }
+      setNewComment("");
+      setReplyTo(null);
+    } catch {} finally { setSubmitting(false); }
+  }
+
+  function replaceComment(list: CommentOut[], updated: CommentOut): CommentOut[] {
+    return list.map((c) =>
+      c.id === updated.id ? { ...updated, replies: c.replies }
+        : { ...c, replies: replaceComment(c.replies, updated) }
+    );
+  }
+  function removeComment(list: CommentOut[], id: number): CommentOut[] {
+    return list.filter((c) => c.id !== id).map((c) => ({ ...c, replies: removeComment(c.replies, id) }));
+  }
+  function addReply(list: CommentOut[], parentId: number, reply: CommentOut): CommentOut[] {
+    return list.map((c) =>
+      c.id === parentId ? { ...c, replies: [...c.replies, reply] }
+        : { ...c, replies: addReply(c.replies, parentId, reply) }
+    );
+  }
+
+  const totalComments = comments.reduce(function count(acc: number, c: CommentOut): number {
+    return acc + 1 + c.replies.reduce(count, 0);
+  }, 0);
+
+  function handleReport() {
+    Alert.alert(
+      "Reportar post",
+      "¿Cuál es el motivo?",
+      [
+        ...REPORT_REASONS.map(({ key, label }) => ({
+          text: label,
+          onPress: () => {
+            reportApi.create({ reason: key, reported_post_id: post.id })
+              .then(() => Alert.alert("✓ Reporte enviado", "Gracias por ayudarnos a mantener la comunidad."))
+              .catch(() => Alert.alert("Error", "No se pudo enviar el reporte."));
+          },
+        })),
+        { text: "Cancelar", style: "cancel" as const },
+      ]
+    );
+  }
+
   return (
     <View style={s.postCard}>
+      {/* Header */}
       <View style={s.postHeader}>
         <View style={s.postAvatar}>
           {post.avatar_url ? (
@@ -425,15 +602,172 @@ function PostCard({ post }: { post: any }) {
             <Text style={s.postAvatarLetter}>{(post.display_name || post.username)[0]}</Text>
           )}
         </View>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={s.postDisplayName}>{post.display_name || post.username}</Text>
           <Text style={s.postUsername}>@{post.username}</Text>
         </View>
+        <TouchableOpacity onPress={handleReport} style={s.reportBtn}>
+          <Text style={s.reportBtnText}>🚩</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Image */}
       {post.image_url ? (
         <Image source={{ uri: post.image_url }} style={s.postImage} resizeMode="cover" />
       ) : null}
+
+      {/* Caption */}
       {post.caption ? <Text style={s.postCaption}>{post.caption}</Text> : null}
+
+      {/* Reaction bar */}
+      <View style={s.reactionsRow}>
+        {REACTIONS.map(({ key, emoji }) => {
+          const count = reactions?.counts?.[key] ?? 0;
+          const active = reactions?.my_reaction === key;
+          return (
+            <TouchableOpacity
+              key={key}
+              onPress={() => handleReaction(key)}
+              style={[s.reactionBtn, active && s.reactionBtnActive]}
+            >
+              <Text style={s.reactionEmoji}>{emoji}</Text>
+              {count > 0 && (
+                <Text style={[s.reactionCount, active && s.reactionCountActive]}>{count}</Text>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Action row: Share | Comment */}
+      <View style={s.actionRow}>
+        <TouchableOpacity
+          style={s.actionBtn}
+          onPress={() => Share.share({ message: post.caption ? `${post.caption}${post.image_url ? `\n${post.image_url}` : ""}` : (post.image_url ?? "Mirá este post en HateGram") })}
+        >
+          <Text style={s.actionBtnText}>🔁 Compartir</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.actionBtn, showComments && s.actionBtnActive]}
+          onPress={() => setShowComments((v) => !v)}
+        >
+          <Text style={[s.actionBtnText, showComments && s.actionBtnTextActive]}>
+            💬 {totalComments > 0 ? `${totalComments} comentario${totalComments !== 1 ? "s" : ""}` : "Comentar"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Comments section */}
+      {showComments && (
+        <View style={s.commentsSection}>
+          {/* Sort toggle */}
+          <View style={s.sortRow}>
+            {(["top", "new"] as const).map((sort) => (
+              <TouchableOpacity
+                key={sort}
+                onPress={() => setCommentSort(sort)}
+                style={[s.sortBtn, commentSort === sort && s.sortBtnActive]}
+              >
+                <Text style={[s.sortBtnText, commentSort === sort && s.sortBtnTextActive]}>
+                  {sort === "top" ? "Top" : "Nuevo"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* New comment input */}
+          {replyTo && (
+            <View style={s.replyingToRow}>
+              <Text style={s.replyingToText}>Respondiendo a @{replyTo.username}</Text>
+              <TouchableOpacity onPress={() => setReplyTo(null)}>
+                <Text style={s.replyingToClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <View style={s.commentInputRow}>
+            <TextInput
+              value={newComment}
+              onChangeText={setNewComment}
+              placeholder={replyTo ? `Responder...` : "Agregar comentario..."}
+              placeholderTextColor="#555"
+              style={s.commentInput}
+              multiline
+            />
+            <TouchableOpacity
+              onPress={handleSubmitComment}
+              disabled={!newComment.trim() || submitting}
+              style={[s.commentSend, (!newComment.trim() || submitting) && s.commentSendDisabled]}
+            >
+              <Text style={s.commentSendText}>{submitting ? "..." : "→"}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Comment list */}
+          {comments.length === 0 && commentsLoaded && (
+            <Text style={s.noComments}>Sin comentarios aún. Sé el primero.</Text>
+          )}
+          {comments.map((c) => (
+            <CommentItem
+              key={c.id}
+              comment={c}
+              currentUserId={currentUserId}
+              onVote={handleVote}
+              onDelete={handleDeleteComment}
+              onReply={(id, username) => setReplyTo({ id, username })}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ── CommentItem ───────────────────────────────────────────────────
+function CommentItem({
+  comment, currentUserId, onVote, onDelete, onReply, depth = 0,
+}: {
+  comment: CommentOut;
+  currentUserId?: number;
+  onVote: (id: number, vote: 1 | -1) => void;
+  onDelete: (id: number) => void;
+  onReply: (id: number, username: string) => void;
+  depth?: number;
+}) {
+  return (
+    <View style={[s.commentItem, depth > 0 && s.commentItemReply]}>
+      <View style={s.commentHeader}>
+        <Text style={s.commentAuthor}>{comment.display_name}</Text>
+        <Text style={s.commentHandle}>@{comment.username}</Text>
+      </View>
+      <Text style={s.commentContent}>{comment.content}</Text>
+      <View style={s.commentActions}>
+        <TouchableOpacity onPress={() => onVote(comment.id, 1)} style={s.voteBtn}>
+          <Text style={[s.voteArrow, comment.my_vote === 1 && s.voteUp]}>▲</Text>
+        </TouchableOpacity>
+        <Text style={[s.voteScore,
+          comment.score > 0 && s.voteScorePos,
+          comment.score < 0 && s.voteScoreNeg,
+        ]}>
+          {comment.score}
+        </Text>
+        <TouchableOpacity onPress={() => onVote(comment.id, -1)} style={s.voteBtn}>
+          <Text style={[s.voteArrow, comment.my_vote === -1 && s.voteDown]}>▼</Text>
+        </TouchableOpacity>
+        {depth === 0 && (
+          <TouchableOpacity onPress={() => onReply(comment.id, comment.username)} style={s.replyBtn}>
+            <Text style={s.replyBtnText}>Responder</Text>
+          </TouchableOpacity>
+        )}
+        {currentUserId === comment.user_id && (
+          <TouchableOpacity onPress={() => onDelete(comment.id)} style={s.deleteBtn}>
+            <Text style={s.deleteBtnText}>Eliminar</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {comment.replies.map((r) => (
+        <CommentItem key={r.id} comment={r} currentUserId={currentUserId}
+          onVote={onVote} onDelete={onDelete} onReply={onReply} depth={depth + 1} />
+      ))}
     </View>
   );
 }
@@ -513,9 +847,21 @@ const s = StyleSheet.create({
   communityName:  { color: "#fff", fontWeight: "700", fontSize: 14 },
   communityMembers: { color: "#555", fontSize: 12 },
   joinBtn:        { backgroundColor: RED, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8 },
-  joinBtnLeave:   { backgroundColor: "transparent", borderWidth: 1, borderColor: "#555" },
   joinBtnText:    { color: "#fff", fontWeight: "700", fontSize: 12 },
-  joinBtnLeaveText: { color: "#aaa" },
+
+  // Community filter bar (member)
+  filterRow:          { flexDirection: "row", flex: 1, gap: 4 },
+  filterBtn:          { flex: 1, paddingVertical: 7, borderRadius: 10, backgroundColor: "#2A2A2A", alignItems: "center" },
+  filterBtnActive:    { backgroundColor: RED },
+  filterBtnText:      { color: "#777", fontSize: 11, fontWeight: "700" },
+  filterBtnTextActive: { color: "#fff" },
+  menuBtn:            { width: 36, height: 36, borderRadius: 8, backgroundColor: "#2A2A2A", justifyContent: "center", alignItems: "center", marginLeft: 8 },
+  menuBtnText:        { color: "#fff", fontSize: 18, lineHeight: 20 },
+  menuDropdown:       { position: "absolute", right: 0, top: 42, backgroundColor: "#1E1E1E", borderRadius: 10, borderWidth: 1, borderColor: "#333", minWidth: 150, zIndex: 100, shadowColor: "#000", shadowOpacity: 0.5, shadowRadius: 8, elevation: 10 },
+  menuItem:           { paddingHorizontal: 16, paddingVertical: 12 },
+  menuItemBorder:     { borderTopWidth: 1, borderTopColor: "#2A2A2A" },
+  menuItemText:       { color: "#ccc", fontSize: 13, fontWeight: "600" },
+  menuItemDanger:     { color: RED },
 
   // PostCard
   postCard:       { backgroundColor: "#1A1A1A", marginHorizontal: 12, marginBottom: 10, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "#2A2A2A" },
@@ -525,8 +871,64 @@ const s = StyleSheet.create({
   postAvatarLetter: { color: RED, fontSize: 16, fontWeight: "900" },
   postDisplayName: { color: "#fff", fontWeight: "700", fontSize: 14 },
   postUsername:   { color: "#555", fontSize: 12 },
+  reportBtn:      { padding: 6 },
+  reportBtnText:  { fontSize: 16 },
   postImage:      { width: "100%", height: 240 },
   postCaption:    { color: "#ccc", fontSize: 14, padding: 12 },
+
+  // Reactions
+  reactionsRow:      { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: "#2A2A2A" },
+  reactionBtn:       { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10, borderWidth: 1, borderColor: "transparent", backgroundColor: "#1A1A1A" },
+  reactionBtnActive: { backgroundColor: "rgba(230,57,70,0.15)", borderColor: "rgba(230,57,70,0.4)" },
+  reactionEmoji:     { fontSize: 16 },
+  reactionCount:     { color: "#666", fontSize: 11, fontWeight: "700" },
+  reactionCountActive: { color: RED },
+
+  // Action row (share | comment)
+  actionRow:           { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#2A2A2A" },
+  actionBtn:           { flex: 1, paddingHorizontal: 12, paddingVertical: 10, alignItems: "center" },
+  actionBtnActive:     { borderBottomWidth: 2, borderBottomColor: "#4A90E2" },
+  actionBtnText:       { color: "#555", fontSize: 12, fontWeight: "600" },
+  actionBtnTextActive: { color: "#4A90E2" },
+
+  // Comments section
+  commentsSection:   { borderTopWidth: 1, borderTopColor: "#2A2A2A", paddingHorizontal: 12, paddingBottom: 8 },
+  sortRow:           { flexDirection: "row", gap: 6, paddingVertical: 8 },
+  sortBtn:           { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: "#2A2A2A" },
+  sortBtnActive:     { backgroundColor: "#3A3A3A" },
+  sortBtnText:       { color: "#666", fontSize: 11, fontWeight: "700" },
+  sortBtnTextActive: { color: "#fff" },
+
+  replyingToRow:   { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
+  replyingToText:  { color: "#888", fontSize: 11, flex: 1 },
+  replyingToClose: { color: "#555", fontSize: 14 },
+
+  commentInputRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  commentInput:    { flex: 1, backgroundColor: "#2A2A2A", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, color: "#fff", fontSize: 13, borderWidth: 1, borderColor: "#333" },
+  commentSend:     { backgroundColor: RED, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, justifyContent: "center" },
+  commentSendDisabled: { opacity: 0.4 },
+  commentSendText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+
+  noComments:      { color: "#444", fontSize: 12, textAlign: "center", paddingVertical: 12 },
+
+  commentItem:     { paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "#222" },
+  commentItemReply: { marginLeft: 16, borderLeftWidth: 2, borderLeftColor: "#2A2A2A", paddingLeft: 10 },
+  commentHeader:   { flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 3 },
+  commentAuthor:   { color: "#fff", fontWeight: "700", fontSize: 12 },
+  commentHandle:   { color: "#555", fontSize: 11 },
+  commentContent:  { color: "#ccc", fontSize: 13, lineHeight: 18, marginBottom: 4 },
+  commentActions:  { flexDirection: "row", alignItems: "center", gap: 8 },
+  voteBtn:         { padding: 2 },
+  voteArrow:       { color: "#555", fontSize: 12, fontWeight: "900" },
+  voteUp:          { color: "#4CAF50" },
+  voteDown:        { color: RED },
+  voteScore:       { color: "#666", fontSize: 12, fontWeight: "700", minWidth: 20, textAlign: "center" },
+  voteScorePos:    { color: "#4CAF50" },
+  voteScoreNeg:    { color: RED },
+  replyBtn:        { marginLeft: 4 },
+  replyBtnText:    { color: "#666", fontSize: 11 },
+  deleteBtn:       { marginLeft: 4 },
+  deleteBtnText:   { color: "#555", fontSize: 11 },
 
   // FAB
   fabContainer:   { position: "absolute", bottom: 25, right: 25, alignItems: "center" },

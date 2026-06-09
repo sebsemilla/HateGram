@@ -12,6 +12,13 @@ router = APIRouter(prefix="/profiles", tags=["profiles"])
 
 def _build_profile_out(profile: Profile, db: Session | None = None) -> ProfileOut:
     badges = get_user_badges(profile.user_id, db) if db else []
+    is_fictitious = profile.user.is_fictitious if profile.user else False
+    bot_id = None
+    if is_fictitious and db:
+        from app.models.bot import Bot
+        bot = db.query(Bot).filter(Bot.user_id == profile.user_id).first()
+        if bot:
+            bot_id = bot.id
     return ProfileOut(
         id=profile.id,
         user_id=profile.user_id,
@@ -23,6 +30,8 @@ def _build_profile_out(profile: Profile, db: Session | None = None) -> ProfileOu
         location=profile.location or "",
         username=profile.user.username,
         badges=badges,
+        is_fictitious=is_fictitious,
+        bot_id=bot_id,
     )
 
 

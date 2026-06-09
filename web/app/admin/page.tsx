@@ -54,6 +54,7 @@ export default function AdminPage() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ display_name: "", bio: "", location: "", website: "", avatar_url: "" });
   const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState("");
   const [runningBot, setRunningBot] = useState(false);
   const [runResults, setRunResults] = useState<any[]>([]);
   const [durationDays, setDurationDays] = useState<number>(0);
@@ -187,11 +188,23 @@ export default function AdminPage() {
 
   async function handleProfileSave() {
     if (!selectedBot) return;
+    if (!profileForm.display_name.trim()) {
+      setProfileError("El nombre no puede estar vacío");
+      return;
+    }
     setProfileSaving(true);
+    setProfileError("");
     try {
-      const updated = await botApi.updateProfile(selectedBot.id, profileForm);
+      const payload: Record<string, string> = { display_name: profileForm.display_name };
+      if (profileForm.bio      !== undefined) payload.bio       = profileForm.bio;
+      if (profileForm.location !== undefined) payload.location  = profileForm.location;
+      if (profileForm.website  !== undefined) payload.website   = profileForm.website;
+      if (profileForm.avatar_url !== undefined) payload.avatar_url = profileForm.avatar_url;
+      const updated = await botApi.updateProfile(selectedBot.id, payload);
       setBots((prev) => prev.map((b) => b.id === updated.id ? updated : b));
       setEditingProfile(false);
+    } catch (err: any) {
+      setProfileError(err.message || "Error al guardar perfil");
     } finally {
       setProfileSaving(false);
     }
@@ -809,7 +822,7 @@ export default function AdminPage() {
                               className="w-10 h-10 rounded-full bg-hate-light flex-shrink-0 object-cover" alt="" />
                             <div className="flex-1 space-y-2">
                               <input type="text" value={profileForm.display_name}
-                                onChange={(e) => setProfileForm((f) => ({ ...f, display_name: e.target.value }))}
+                                onChange={(e) => { setProfileError(""); setProfileForm((f) => ({ ...f, display_name: e.target.value })); }}
                                 placeholder="Nombre"
                                 className="w-full bg-hate-gray border border-gray-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-hate-red"
                               />
@@ -837,8 +850,11 @@ export default function AdminPage() {
                               className="flex-1 bg-hate-gray border border-gray-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-hate-red"
                             />
                           </div>
+                          {profileError && (
+                            <p className="text-hate-red text-xs">{profileError}</p>
+                          )}
                           <div className="flex gap-2 justify-end">
-                            <button onClick={() => setEditingProfile(false)}
+                            <button onClick={() => { setEditingProfile(false); setProfileError(""); }}
                               className="text-xs text-gray-500 hover:text-white px-3 py-1.5 rounded-lg transition">
                               Cancelar
                             </button>

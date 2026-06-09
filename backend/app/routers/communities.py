@@ -7,8 +7,9 @@ from app.db.database import get_db
 from app.models.community import Community, Membership
 from app.models.post import Post
 from app.models.user import User
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_current_user_optional
 from app.routers.posts import _build_post_out
+from app.models.post_reaction import PostReaction
 
 router = APIRouter(prefix="/communities", tags=["communities"])
 
@@ -159,20 +160,37 @@ def leave_community(
 @router.get("/{slug}/feed")
 def community_feed(
     slug: str,
+    sort: str = "new",   # new | top
+    view: str = "all",   # all | own | tagged
     skip: int = 0,
     limit: int = 30,
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     c = db.query(Community).filter(Community.slug == slug).first()
     if not c:
         raise HTTPException(status_code=404, detail="Comunidad no encontrada")
-    posts = (
+
+    q = (
         db.query(Post)
         .filter(Post.community_id == c.id)
-        .join(User)
+        .join(User, Post.user_id == User.id)
         .filter(User.is_active == True)
-        .order_by(Post.created_at.desc())
-        .offset(skip).limit(limit)
-        .all()
     )
-    return [_build_post_out(p) for p in posts]
+
+    if view == "own" and current_user:
+        q = q.filter(Post.user_id == current_user.id)
+    elif view == "tagged":
+        q = q.filter(Post.caption.contains("#"))
+
+    if sort == "top":
+        q = (
+            q.outerjoin(PostReaction, PostReaction.post_id == Post.id)
+            .group_by(Post.id)
+            .order_by(func.count(PostReaction.id).desc(), Post.created_at.desc())
+        )
+    else:
+        q = q.order_by(Post.created_at.desc())
+
+    posts = q.offset(skip).limit(limit).all()
+    return [_build_post_out(p, current_user=current_user, db=db) for p in posts]

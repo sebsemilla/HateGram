@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { messagesApi } from "@/lib/api";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export default function MessagesPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,15 +31,15 @@ export default function MessagesPage() {
     <div className="min-h-screen bg-hate-dark flex flex-col max-w-[430px] mx-auto">
       <nav className="bg-hate-gray border-b border-gray-800 px-4 py-3 flex items-center gap-3 sticky top-0 z-20">
         <Link href="/feed" className="text-gray-400 hover:text-white text-sm transition">←</Link>
-        <span className="text-white font-black text-lg flex-1">Mensajes</span>
+        <span className="text-white font-black text-lg flex-1">{t("messages_title")}</span>
       </nav>
 
       {loading ? (
-        <div className="flex-1 flex items-center justify-center text-gray-600">Cargando...</div>
+        <div className="flex-1 flex items-center justify-center text-gray-600">{t("messages_loading")}</div>
       ) : conversations.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-gray-600 gap-3 px-8 text-center">
           <p className="text-5xl">✉️</p>
-          <p className="text-sm">No tenés conversaciones aún.<br/>Visitá un perfil y presioná Contactar.</p>
+          <p className="text-sm">{t("messages_empty")}</p>
         </div>
       ) : (
         <div className="divide-y divide-gray-800/60">
@@ -71,7 +73,7 @@ export default function MessagesPage() {
                 </div>
                 {c.last_message && (
                   <p className={`text-xs truncate mt-0.5 ${c.unread_count > 0 ? "text-gray-300 font-semibold" : "text-gray-600"}`}>
-                    {c.last_message.shared_post ? "📎 Post compartido" : c.last_message.content}
+                    {c.last_message.shared_post ? t("messages_shared_post") : c.last_message.content}
                   </p>
                 )}
               </div>

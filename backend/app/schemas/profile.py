@@ -33,5 +33,7 @@ class ProfileOut(BaseModel):
     follower_count: int = 0
     following_count: int = 0
     badges: list[BadgeOut] = []
+    is_fictitious: bool = False
+    bot_id: Optional[int] = None
 
     model_config = {"from_attributes": True}

@@ -4,10 +4,12 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { communityApi } from "@/lib/api";
 import CreatePostModal from "@/components/CreatePostModal";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export default function CommunityPage() {
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
+  const { t } = useLanguage();
   const [community, setCommunity] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -38,18 +40,17 @@ export default function CommunityPage() {
   }
 
   if (!community) return (
-    <div className="min-h-screen flex items-center justify-center text-gray-500">Cargando...</div>
+    <div className="min-h-screen flex items-center justify-center text-gray-500">{t("loading")}</div>
   );
 
   return (
     <div className="min-h-screen bg-hate-dark">
       <nav className="bg-hate-gray border-b border-gray-800 px-4 py-3 flex items-center gap-3 sticky top-0 z-20">
-        <Link href="/feed" className="text-gray-400 hover:text-white text-sm">← Feed</Link>
+        <Link href="/feed" className="text-gray-400 hover:text-white text-sm">{t("back_feed")}</Link>
         <span className="text-xl font-black text-hate-red">HateGram</span>
       </nav>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Header */}
         <div className="bg-hate-gray rounded-xl overflow-hidden mb-5">
           {community.image_url && (
             <img src={community.image_url} alt={community.name} className="w-full h-36 object-cover" />
@@ -59,10 +60,10 @@ export default function CommunityPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-black text-white">{community.name}</h1>
                 {community.type === "fan" && (
-                  <span className="text-xs bg-hate-red/20 text-hate-red px-2 py-0.5 rounded-full">Fan Group</span>
+                  <span className="text-xs bg-hate-red/20 text-hate-red px-2 py-0.5 rounded-full">{t("community_fan_badge")}</span>
                 )}
               </div>
-              <p className="text-gray-500 text-sm mt-0.5">{community.member_count} miembros</p>
+              <p className="text-gray-500 text-sm mt-0.5">{community.member_count} {t("members")}</p>
               {community.description && <p className="text-gray-400 text-sm mt-2">{community.description}</p>}
             </div>
             {user && (
@@ -75,18 +76,17 @@ export default function CommunityPage() {
                     : "bg-hate-red hover:bg-red-700 text-white"
                 }`}
               >
-                {joining ? "..." : community.is_member ? "Salir" : "Unirse"}
+                {joining ? "..." : community.is_member ? t("community_leave") : t("community_join")}
               </button>
             )}
           </div>
         </div>
 
-        {/* Posts */}
         {posts.length === 0 ? (
           <div className="text-center py-16 text-gray-600">
             <p className="text-4xl mb-3">📭</p>
             <p className="text-sm">
-              {community.is_member ? "Sin posts aún. ¡Publicá algo!" : "Unite para publicar en esta comunidad."}
+              {community.is_member ? t("community_no_posts_mine") : t("community_no_posts_join")}
             </p>
           </div>
         ) : (
@@ -125,7 +125,6 @@ export default function CommunityPage() {
         )}
       </div>
 
-      {/* FAB solo si es miembro */}
       {community.is_member && (
         <button
           onClick={() => setShowPost(true)}

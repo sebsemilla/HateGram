@@ -56,7 +56,8 @@ export const communityApi = {
   get: (slug: string) => apiFetch(`/communities/${slug}`),
   join: (slug: string) => apiFetch(`/communities/${slug}/join`, { method: "POST" }),
   leave: (slug: string) => apiFetch(`/communities/${slug}/leave`, { method: "DELETE" }),
-  feed: (slug: string) => apiFetch(`/communities/${slug}/feed`),
+  feed: (slug: string, sort = "new", view = "all") =>
+    apiFetch(`/communities/${slug}/feed?sort=${sort}&view=${view}`),
 };
 
 // ── Upload ────────────────────────────────────────────────────────
@@ -151,4 +152,40 @@ export async function fetchLinkPreview(url: string) {
 export const followApi = {
   toggle: (username: string) => apiFetch(`/follow/${username}`, { method: "POST" }),
   status: (username: string) => apiFetch(`/follow/status/${username}`),
+};
+
+// ── Reactions ─────────────────────────────────────────────────────
+export type ReactionCounts = { heart: number; fire: number; cringe: number; cope: number; based: number; dead: number };
+export type ReactionsOut = { counts: ReactionCounts; my_reaction: string | null; total: number };
+
+export const reactionsApi = {
+  get: (postId: number): Promise<ReactionsOut> => apiFetch(`/posts/${postId}/reactions`),
+  toggle: (postId: number, reaction_type: string): Promise<ReactionsOut> =>
+    apiFetch(`/posts/${postId}/reactions`, { method: "POST", body: JSON.stringify({ reaction_type }) }),
+};
+
+// ── Comments ──────────────────────────────────────────────────────
+export type CommentOut = {
+  id: number;
+  post_id: number;
+  user_id: number;
+  username: string;
+  display_name: string;
+  avatar_url: string;
+  content: string;
+  created_at: string;
+  parent_id: number | null;
+  score: number;
+  my_vote: number | null;
+  replies: CommentOut[];
+};
+
+export const commentsApi = {
+  get: (postId: number, sort: "top" | "new" = "top"): Promise<CommentOut[]> =>
+    apiFetch(`/comments/${postId}?sort=${sort}`),
+  create: (postId: number, content: string, parent_id?: number): Promise<CommentOut> =>
+    apiFetch(`/comments/${postId}`, { method: "POST", body: JSON.stringify({ content, parent_id }) }),
+  delete: (commentId: number) => apiFetch(`/comments/${commentId}`, { method: "DELETE" }),
+  vote: (commentId: number, vote: 1 | -1): Promise<CommentOut> =>
+    apiFetch(`/comments/${commentId}/vote`, { method: "POST", body: JSON.stringify({ vote }) }),
 };

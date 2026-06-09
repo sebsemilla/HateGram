@@ -200,6 +200,7 @@ class ProfileUpdate(BaseModel):
     location: Optional[str] = None
     website: Optional[str] = None
     avatar_url: Optional[str] = None
+    banner_url: Optional[str] = None
 
 
 @router.patch("/{bot_id}/profile")
@@ -215,16 +216,9 @@ def update_bot_profile(
     profile = bot.user.profile
     if not profile:
         raise HTTPException(status_code=404, detail="Perfil no encontrado")
-    if data.display_name is not None:
-        profile.display_name = data.display_name
-    if data.bio is not None:
-        profile.bio = data.bio
-    if data.location is not None:
-        profile.location = data.location
-    if data.website is not None:
-        profile.website = data.website
-    if data.avatar_url is not None:
-        profile.avatar_url = data.avatar_url
+    for field, value in data.model_dump(exclude_none=True).items():
+        if value != "":
+            setattr(profile, field, value)
     db.commit()
     db.refresh(bot)
     return _build_bot_out(bot)

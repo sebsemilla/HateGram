@@ -3,10 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { messagesApi } from "@/lib/api";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export default function ThreadPage() {
   const { username } = useParams() as { username: string };
   const router = useRouter();
+  const { t } = useLanguage();
   const [thread, setThread] = useState<any>(null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -33,7 +35,7 @@ export default function ThreadPage() {
     setError("");
     try {
       const msg = await messagesApi.send(username, { content: text.trim() });
-      setThread((t: any) => ({ ...t, bilateral: true, messages: [...t.messages, msg] }));
+      setThread((th: any) => ({ ...th, bilateral: true, messages: [...th.messages, msg] }));
       setText("");
     } catch (err: any) {
       setError(err.message);
@@ -47,7 +49,7 @@ export default function ThreadPage() {
   }
 
   if (!thread) return (
-    <div className="min-h-screen flex items-center justify-center text-gray-600">Cargando...</div>
+    <div className="min-h-screen flex items-center justify-center text-gray-600">{t("messages_loading")}</div>
   );
 
   const peer = thread.user;
@@ -71,10 +73,10 @@ export default function ThreadPage() {
         </Link>
       </nav>
 
-      {/* Banner si solo un mensaje enviado */}
+      {/* Banner primer mensaje */}
       {isSolo && (
         <div className="bg-blue-500/10 border-b border-blue-500/20 px-4 py-2.5 text-xs text-blue-400 flex-shrink-0">
-          Enviaste un mensaje. Podrás seguir escribiendo cuando <strong>@{peer.username}</strong> responda.
+          {t("msg_sent_pre")} <strong>@{peer.username}</strong> {t("msg_sent_post")}
         </div>
       )}
 
@@ -82,7 +84,7 @@ export default function ThreadPage() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {messages.length === 0 && (
           <div className="text-center text-gray-600 text-sm py-8">
-            Empezá la conversación con <strong className="text-gray-400">@{peer.username}</strong>
+            {t("msg_start_convo")} <strong className="text-gray-400">@{peer.username}</strong>
           </div>
         )}
         {messages.map((msg) => {
@@ -92,14 +94,10 @@ export default function ThreadPage() {
               {msg.shared_post && (
                 <div className={`max-w-[75%] mb-1 rounded-2xl overflow-hidden border border-gray-700 ${isMine ? "bg-hate-red/10" : "bg-hate-gray"}`}>
                   {(msg.shared_post.image_url || msg.shared_post.link_image) && (
-                    <img
-                      src={msg.shared_post.image_url || msg.shared_post.link_image}
-                      className="w-full object-cover max-h-32"
-                      alt=""
-                    />
+                    <img src={msg.shared_post.image_url || msg.shared_post.link_image} className="w-full object-cover max-h-32" alt="" />
                   )}
                   <div className="px-3 py-2">
-                    <p className="text-gray-500 text-xs">📎 Post de @{msg.shared_post.username}</p>
+                    <p className="text-gray-500 text-xs">📎 Post @{msg.shared_post.username}</p>
                     {msg.shared_post.link_title && <p className="text-white text-xs font-semibold mt-0.5 line-clamp-2">{msg.shared_post.link_title}</p>}
                     {!msg.shared_post.link_title && msg.shared_post.caption && (
                       <p className="text-gray-300 text-xs mt-0.5 line-clamp-2">{msg.shared_post.caption}</p>
@@ -108,9 +106,7 @@ export default function ThreadPage() {
                 </div>
               )}
               <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                isMine
-                  ? "bg-hate-red text-white rounded-br-sm"
-                  : "bg-hate-gray text-gray-200 rounded-bl-sm"
+                isMine ? "bg-hate-red text-white rounded-br-sm" : "bg-hate-gray text-gray-200 rounded-bl-sm"
               }`}>
                 {msg.content}
               </div>
@@ -128,7 +124,7 @@ export default function ThreadPage() {
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={bilateral || messages.length === 0 ? "Escribí un mensaje..." : "Esperá la respuesta para continuar..."}
+            placeholder={isSolo ? t("msg_wait") : t("msg_write")}
             disabled={isSolo}
             className="flex-1 bg-hate-light border border-gray-700 rounded-full px-4 py-2.5 text-white text-sm focus:outline-none focus:border-hate-red disabled:opacity-40 disabled:cursor-not-allowed placeholder-gray-600"
           />

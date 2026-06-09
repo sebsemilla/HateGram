@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { postApi, communityApi, storyApi, StoryGroup } from "@/lib/api";
 import PostCard from "@/components/PostCard";
+import FAB from "@/components/FAB";
 import { useLanguage } from "@/hooks/useLanguage";
 
 type Section = "main" | "onlys" | "gay" | "lesbiana" | "hetero" | "historys";
@@ -31,12 +32,15 @@ export default function FeedPage() {
   const [fanGroups, setFanGroups] = useState<any[]>([]);
   const [search, setSearch] = useState("");
 
+  // Community feed controls
+  const [communityFilter, setCommunityFilter] = useState<"new" | "top" | "own" | "tagged">("new");
+  const [showCommunityMenu, setShowCommunityMenu] = useState(false);
+
   // Stories
   const [storyGroups, setStoryGroups] = useState<StoryGroup[]>([]);
   const [activeGroup, setActiveGroup] = useState<StoryGroup | null>(null);
   const [activeStoryIdx, setActiveStoryIdx] = useState(0);
 
-  const [fabOpen, setFabOpen] = useState(false);
   const [isPreviousSession, setIsPreviousSession] = useState(false);
 
   useEffect(() => {
@@ -59,10 +63,21 @@ export default function FeedPage() {
       storyApi.feed().then(setStoryGroups).catch(console.error);
     } else if (section && ORIENTATION_SLUGS[section]) {
       const slug = ORIENTATION_SLUGS[section]!;
+      setCommunityFilter("new");
+      setShowCommunityMenu(false);
       communityApi.get(slug).then(setCommunity).catch(console.error);
-      communityApi.feed(slug).then(setCommunityPosts).catch(console.error);
+      communityApi.feed(slug, "new", "all").then(setCommunityPosts).catch(console.error);
     }
   }, [section]);
+
+  useEffect(() => {
+    if (section && ORIENTATION_SLUGS[section]) {
+      const slug = ORIENTATION_SLUGS[section]!;
+      const sort = communityFilter === "top" ? "top" : "new";
+      const view = communityFilter === "own" ? "own" : communityFilter === "tagged" ? "tagged" : "all";
+      communityApi.feed(slug, sort, view).then(setCommunityPosts).catch(console.error);
+    }
+  }, [communityFilter]);
 
   useEffect(() => {
     if (section === "onlys") {
@@ -76,21 +91,26 @@ export default function FeedPage() {
     setActiveStoryIdx(0);
   }
 
-  async function handleJoinLeave() {
-    if (!community) return;
-    const slug = ORIENTATION_SLUGS[section!]!;
+  async function handleJoin() {
+    if (!community || !section) return;
+    const slug = ORIENTATION_SLUGS[section]!;
     setJoining(true);
     try {
-      if (community.is_member) {
-        await communityApi.leave(slug);
-        setCommunity((c: any) => ({ ...c, is_member: false, member_count: c.member_count - 1 }));
-      } else {
-        await communityApi.join(slug);
-        setCommunity((c: any) => ({ ...c, is_member: true, member_count: c.member_count + 1 }));
-      }
+      await communityApi.join(slug);
+      setCommunity((c: any) => ({ ...c, is_member: true, member_count: c.member_count + 1 }));
     } finally {
       setJoining(false);
     }
+  }
+
+  async function handleLeave() {
+    if (!community || !section) return;
+    const slug = ORIENTATION_SLUGS[section]!;
+    setShowCommunityMenu(false);
+    try {
+      await communityApi.leave(slug);
+      setCommunity((c: any) => ({ ...c, is_member: false, member_count: c.member_count - 1 }));
+    } catch {}
   }
 
   function restorePrevSession() {
@@ -377,24 +397,86 @@ export default function FeedPage() {
         {section && ORIENTATION_SLUGS[section] && (
           <div>
             {community && (
-              <div className="mx-3 my-3 bg-hate-gray rounded-2xl px-4 py-3 flex items-center gap-3 border border-gray-800">
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-bold text-sm">{community.name}</p>
-                  <p className="text-gray-500 text-xs">{community.member_count} miembros</p>
+              community.is_member ? (
+                /* ── Miembro: filtros + menú ── */
+                <div className="mx-3 my-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    {/* Filter tabs */}
+                    <div className="flex flex-1 bg-hate-gray rounded-xl border border-gray-800 overflow-hidden">
+                      {([
+                        { key: "new",    label: t("filter_new")    },
+                        { key: "top",    label: t("filter_top")    },
+                        { key: "own",    label: t("filter_own")    },
+                        { key: "tagged", label: t("filter_tagged") },
+                      ] as const).map(({ key, label }) => (
+                        <button
+                          key={key}
+                          onClick={() => setCommunityFilter(key)}
+                          className={`flex-1 py-2 text-xs font-bold transition ${
+                            communityFilter === key
+                              ? "bg-hate-red text-white"
+                              : "text-gray-500 hover:text-gray-300"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Menu button */}
+                    <div className="relative flex-shrink-0">
+                      <button
+                        onClick={() => setShowCommunityMenu((v) => !v)}
+                        className="w-10 h-10 bg-hate-gray border border-gray-700 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:border-gray-500 transition text-lg font-bold"
+                      >
+                        ⋮
+                      </button>
+                      {showCommunityMenu && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setShowCommunityMenu(false)} />
+                          <div className="absolute right-0 top-12 bg-hate-gray border border-gray-700 rounded-xl shadow-xl z-20 w-44 overflow-hidden">
+                            <button
+                              onClick={() => { setShowCommunityMenu(false); router.push("/communities/create"); }}
+                              className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-hate-light transition"
+                            >
+                              {t("community_create_group")}
+                            </button>
+                            <button
+                              onClick={() => setShowCommunityMenu(false)}
+                              className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-hate-light transition border-t border-gray-800"
+                            >
+                              {t("community_search")}
+                            </button>
+                            <button
+                              onClick={handleLeave}
+                              className="w-full text-left px-4 py-3 text-sm text-hate-red hover:bg-hate-light transition border-t border-gray-800"
+                            >
+                              {t("community_leave")}
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <button
-                  onClick={handleJoinLeave}
-                  disabled={joining}
-                  className={`text-xs font-bold px-4 py-2 rounded-xl transition disabled:opacity-50 flex-shrink-0 ${
-                    community.is_member
-                      ? "border border-gray-600 text-gray-400 hover:border-hate-red hover:text-hate-red"
-                      : "bg-hate-red hover:bg-red-700 text-white"
-                  }`}
-                >
-                  {joining ? "..." : community.is_member ? "Salir" : "Unirse"}
-                </button>
-              </div>
+              ) : (
+                /* ── No miembro: Unirse ── */
+                <div className="mx-3 my-3 bg-hate-gray rounded-2xl px-4 py-3 flex items-center gap-3 border border-gray-800">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-bold text-sm">{community.name}</p>
+                    <p className="text-gray-500 text-xs">{community.member_count} miembros</p>
+                  </div>
+                  <button
+                    onClick={handleJoin}
+                    disabled={joining}
+                    className="text-xs font-bold px-4 py-2 rounded-xl bg-hate-red hover:bg-red-700 text-white transition disabled:opacity-50 flex-shrink-0"
+                  >
+                    {joining ? "..." : t("community_join")}
+                  </button>
+                </div>
+              )
             )}
+
             {communityPosts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-gray-700">
                 <p className="text-3xl mb-2">📭</p>
@@ -410,40 +492,9 @@ export default function FeedPage() {
 
       </div>
 
-      {/* FAB */}
-      <div className="fixed bottom-[25px] flex flex-col-reverse items-center gap-3 z-50" style={{ right: "max(25px, calc(50% - 190px))" }}>
-        <button
-          onClick={() => setFabOpen((v) => !v)}
-          className="w-14 h-14 rounded-full bg-[#1A1A1A] border border-gray-700 text-white flex items-center justify-center shadow-xl hover:border-gray-500 transition-colors duration-200"
-        >
-          <span
-            className="text-2xl font-thin leading-none transition-transform duration-300 select-none"
-            style={{ transform: fabOpen ? "rotate(45deg)" : "rotate(0deg)" }}
-          >
-            +
-          </span>
-        </button>
-
-        {[
-          { label: "Post",         onClick: () => {} },
-          { label: "Add\nHistory", onClick: () => router.push("/stories/create") },
-          { label: "Live\nRec",    onClick: () => {} },
-        ].map((btn, i) => (
-          <button
-            key={btn.label}
-            onClick={btn.onClick}
-            className="w-14 h-14 rounded-full bg-[#1A1A1A] border border-gray-700 text-white text-[9px] font-bold leading-tight flex items-center justify-center shadow-xl whitespace-pre-line text-center transition-all duration-300"
-            style={{
-              opacity: fabOpen ? 1 : 0,
-              transform: fabOpen ? "translateY(0)" : "translateY(16px)",
-              transitionDelay: fabOpen ? `${i * 60}ms` : "0ms",
-              pointerEvents: fabOpen ? "auto" : "none",
-            }}
-          >
-            {btn.label}
-          </button>
-        ))}
-      </div>
+      <FAB onPostCreated={() => {
+        if (section === "main") postApi.feed().then(setPosts).catch(() => {});
+      }} />
 
 
     </div>

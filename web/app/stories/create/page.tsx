@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { postApi, storyApi, uploadMedia, fetchLinkPreview } from "@/lib/api";
+import { useLanguage } from "@/hooks/useLanguage";
 
 type Screen = "picker" | "editor";
 type Mode   = "upload" | "link" | "post";
@@ -23,6 +24,7 @@ const EDITOR_TOOLS = [
 
 export default function CreateStoryPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   // ── Screens & mode ────────────────────────────────────────────
   const [screen, setScreen]   = useState<Screen>("picker");
@@ -151,7 +153,7 @@ export default function CreateStoryPage() {
   }
 
   function closeCamera() {
-    camStream?.getTracks().forEach((t) => t.stop());
+    camStream?.getTracks().forEach((track) => track.stop());
     setCamStream(null);
     setShowCamera(false);
   }
@@ -214,8 +216,8 @@ export default function CreateStoryPage() {
 
       setPubProgress({ done: 0, total: selected.length });
       for (let i = 0; i < selected.length; i++) {
-        const item      = selected[i];
-        const media_url = uploadedMedia?.url  || item.image_url;
+        const item       = selected[i];
+        const media_url  = uploadedMedia?.url  || item.image_url;
         const media_type = uploadedMedia?.media_type || "image";
         await storyApi.create({
           media_url,
@@ -249,13 +251,13 @@ export default function CreateStoryPage() {
           {/* Header */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800 flex-shrink-0">
             <button onClick={() => router.back()} className="text-gray-400 hover:text-white transition text-lg">←</button>
-            <span className="font-black text-white flex-1">Nueva Story</span>
+            <span className="font-black text-white flex-1">{t("story_new")}</span>
             {multiMode && selected.length > 0 && (
               <button
                 onClick={() => goToEditor(selected)}
                 className="bg-hate-red text-white text-xs font-bold px-4 py-1.5 rounded-xl"
               >
-                Next →
+                {t("story_next")}
               </button>
             )}
           </div>
@@ -286,7 +288,7 @@ export default function CreateStoryPage() {
                 disabled={publishing}
                 className="ml-auto text-xs text-gray-400 hover:text-white border border-gray-700 rounded-lg px-3 py-1 transition disabled:opacity-50"
               >
-                {publishing ? "Subiendo..." : "Subir archivo"}
+                {publishing ? t("uploading") : t("story_upload")}
               </button>
             )}
           </div>
@@ -307,7 +309,7 @@ export default function CreateStoryPage() {
                   disabled={fetchingLink || !linkUrl}
                   className="bg-hate-red text-white text-xs font-bold px-3 rounded-xl disabled:opacity-50"
                 >
-                  {fetchingLink ? "..." : "Ver"}
+                  {fetchingLink ? "..." : t("story_link_preview")}
                 </button>
               </div>
 
@@ -321,7 +323,7 @@ export default function CreateStoryPage() {
                 <span className="text-gray-400 text-sm">#</span>
                 <input
                   type="text"
-                  placeholder="hashtag (sin #)"
+                  placeholder={t("story_hashtag")}
                   value={hashtag}
                   onChange={(e) => setHashtag(e.target.value.replace(/\s/g, ""))}
                   className="flex-1 bg-transparent text-white text-sm focus:outline-none"
@@ -333,7 +335,7 @@ export default function CreateStoryPage() {
                   onClick={() => goToEditor([{ id: "__link", image_url: linkImage }])}
                   className="w-full bg-hate-red text-white font-bold py-3 rounded-2xl mt-auto"
                 >
-                  Continuar →
+                  {t("story_continue")}
                 </button>
               )}
             </div>
@@ -348,8 +350,8 @@ export default function CreateStoryPage() {
                   onChange={(e) => setFilter(e.target.value)}
                   className="w-full bg-hate-gray border border-gray-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-hate-red"
                 >
-                  {FILTER_TAGS.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
+                  {FILTER_TAGS.map((tag) => (
+                    <option key={tag.value} value={tag.value}>{tag.label}</option>
                   ))}
                 </select>
               </div>
@@ -364,7 +366,7 @@ export default function CreateStoryPage() {
                       className="aspect-square rounded-xl bg-hate-gray border border-gray-700 flex flex-col items-center justify-center gap-1 hover:border-hate-red transition"
                     >
                       <span className="text-2xl">📷</span>
-                      <span className="text-[10px] text-gray-500">Cámara</span>
+                      <span className="text-[10px] text-gray-500">{t("story_camera")}</span>
                     </button>
                   )}
 
@@ -383,11 +385,7 @@ export default function CreateStoryPage() {
                         onTouchStart={() => onPressStart(post)}
                         onTouchEnd={onPressEnd}
                       >
-                        <img
-                          src={post.image_url}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
+                        <img src={post.image_url} alt="" className="w-full h-full object-cover" />
                         {multiMode && isSelected && (
                           <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-hate-red flex items-center justify-center text-white text-[10px] font-bold">
                             {selIdx + 1}
@@ -400,7 +398,7 @@ export default function CreateStoryPage() {
                   {filteredPosts.length === 0 && (
                     <div className="col-span-3 py-16 flex flex-col items-center text-gray-700">
                       <p className="text-3xl mb-2">🖼</p>
-                      <p className="text-sm">No hay posts con imágenes</p>
+                      <p className="text-sm">{t("story_no_images")}</p>
                     </div>
                   )}
                 </div>
@@ -413,7 +411,7 @@ export default function CreateStoryPage() {
                     onClick={() => goToEditor(selected)}
                     className="bg-hate-red text-white font-bold px-6 py-3 rounded-2xl shadow-xl"
                   >
-                    Next ({selected.length}) →
+                    {t("story_next")} ({selected.length})
                   </button>
                 </div>
               )}
@@ -428,7 +426,7 @@ export default function CreateStoryPage() {
             <canvas ref={canvasRef} className="hidden" />
             <div className="flex gap-4 mt-6">
               <button onClick={closeCamera} className="text-gray-400 hover:text-white px-6 py-3 rounded-2xl border border-gray-700 transition">
-                Cancelar
+                {t("cancel")}
               </button>
               <button onClick={capturePhoto} className="bg-white w-16 h-16 rounded-full border-4 border-hate-red shadow-xl" />
             </div>
@@ -460,9 +458,9 @@ export default function CreateStoryPage() {
           >
             ←
           </button>
-          <span className="font-black text-white flex-1">Editar Story</span>
+          <span className="font-black text-white flex-1">{t("story_edit")}</span>
           {selected.length > 1 && (
-            <span className="text-gray-500 text-xs">{selected.length} imágenes · 6s c/u</span>
+            <span className="text-gray-500 text-xs">{selected.length} {t("story_images_count")}</span>
           )}
         </div>
 
@@ -477,7 +475,7 @@ export default function CreateStoryPage() {
                 <img src={previewUrl} alt="" className="max-h-full max-w-full object-contain" />
               )
             ) : (
-              <div className="text-gray-700 text-sm">Sin preview</div>
+              <div className="text-gray-700 text-sm">{t("story_no_preview")}</div>
             )}
 
             {/* Hashtag overlay preview */}
@@ -506,7 +504,7 @@ export default function CreateStoryPage() {
         <div className="bg-hate-dark border-t border-gray-800 px-4 pt-3 pb-5 flex-shrink-0 space-y-3">
           <input
             type="text"
-            placeholder="Escribí un caption..."
+            placeholder={t("story_caption")}
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             className="w-full bg-hate-gray border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-hate-red"
@@ -516,7 +514,7 @@ export default function CreateStoryPage() {
             <span className="text-gray-400 text-sm">#</span>
             <input
               type="text"
-              placeholder="hashtag (sin #)"
+              placeholder={t("story_hashtag")}
               value={hashtag}
               onChange={(e) => setHashtag(e.target.value.replace(/\s/g, ""))}
               className="flex-1 bg-transparent text-white text-sm focus:outline-none"
@@ -526,7 +524,7 @@ export default function CreateStoryPage() {
           {/* Progress indicator */}
           {pubProgress && (
             <p className="text-center text-gray-400 text-xs">
-              Publicando {pubProgress.done}/{pubProgress.total}... esperando 6s entre stories
+              {t("story_publishing")} {pubProgress.done}/{pubProgress.total}
             </p>
           )}
 
@@ -536,14 +534,14 @@ export default function CreateStoryPage() {
               disabled={publishing}
               className="flex-1 bg-hate-red hover:bg-red-700 text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
             >
-              {publishing ? "Publicando..." : "Add Story"}
+              {publishing ? t("story_publishing") : t("story_add")}
             </button>
             <button
               onClick={() => setShowTimePicker(true)}
               disabled={publishing}
               className="flex-1 border border-gray-700 text-gray-300 hover:border-hate-red hover:text-white font-bold py-3 rounded-2xl transition disabled:opacity-50"
             >
-              Set Time
+              {t("story_set_time")}
             </button>
           </div>
         </div>
@@ -553,7 +551,7 @@ export default function CreateStoryPage() {
       {showTimePicker && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center">
           <div className="w-full max-w-[430px] bg-hate-gray rounded-t-3xl px-6 pt-5 pb-8 space-y-4">
-            <p className="font-black text-white text-lg">Programar publicación</p>
+            <p className="font-black text-white text-lg">{t("story_schedule_title")}</p>
             <input
               type="datetime-local"
               value={publishAt}
@@ -565,14 +563,14 @@ export default function CreateStoryPage() {
                 onClick={() => setShowTimePicker(false)}
                 className="flex-1 border border-gray-700 text-gray-400 py-3 rounded-2xl"
               >
-                Cancelar
+                {t("cancel")}
               </button>
               <button
                 onClick={() => { setShowTimePicker(false); publish(publishAt || undefined); }}
                 disabled={!publishAt}
                 className="flex-1 bg-hate-red text-white font-bold py-3 rounded-2xl disabled:opacity-50"
               >
-                Programar
+                {t("story_schedule_btn")}
               </button>
             </div>
           </div>

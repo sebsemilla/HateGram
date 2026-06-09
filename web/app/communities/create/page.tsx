@@ -3,9 +3,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { communityApi, uploadImage } from "@/lib/api";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export default function CreateCommunityPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [form, setForm] = useState({ name: "", slug: "", description: "", image_url: "" });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -31,7 +33,7 @@ export default function CreateCommunityPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim() || !form.slug.trim()) { setError("Nombre y slug son obligatorios"); return; }
+    if (!form.name.trim() || !form.slug.trim()) { setError(t("create_group_error")); return; }
     setSaving(true);
     setError("");
     try {
@@ -47,24 +49,23 @@ export default function CreateCommunityPage() {
   return (
     <div className="min-h-screen bg-hate-dark">
       <nav className="bg-hate-gray border-b border-gray-800 px-4 py-3 flex items-center gap-3 sticky top-0 z-20">
-        <Link href="/feed" className="text-gray-400 hover:text-white text-sm">← Feed</Link>
+        <Link href="/feed" className="text-gray-400 hover:text-white text-sm">{t("back_feed")}</Link>
         <span className="text-xl font-black text-hate-red">HateGram</span>
       </nav>
 
       <div className="max-w-md mx-auto px-4 py-8">
-        <h1 className="text-2xl font-black text-white mb-6">Crear grupo fan</h1>
+        <h1 className="text-2xl font-black text-white mb-6">{t("create_group_title")}</h1>
 
         <form onSubmit={handleSubmit} className="bg-hate-gray rounded-xl p-6 space-y-4">
-          {/* Imagen */}
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Imagen del grupo</label>
+            <label className="block text-sm text-gray-400 mb-2">{t("create_group_image")}</label>
             <div className="relative h-32 bg-hate-light rounded-xl overflow-hidden flex items-center justify-center cursor-pointer"
               onClick={() => document.getElementById("img-input")?.click()}>
               {form.image_url
                 ? <img src={form.image_url} alt="" className="w-full h-full object-cover" />
                 : <div className="text-center">
                     <p className="text-3xl mb-1">🖼️</p>
-                    <p className="text-gray-500 text-xs">{uploading ? "Subiendo..." : "Elegir imagen"}</p>
+                    <p className="text-gray-500 text-xs">{uploading ? t("uploading") : t("create_group_choose_img")}</p>
                   </div>
               }
             </div>
@@ -72,7 +73,7 @@ export default function CreateCommunityPage() {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Nombre del grupo</label>
+            <label className="block text-sm text-gray-400 mb-1">{t("create_group_name")}</label>
             <input
               type="text" required maxLength={100}
               value={form.name}
@@ -82,7 +83,7 @@ export default function CreateCommunityPage() {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Slug (URL)</label>
+            <label className="block text-sm text-gray-400 mb-1">{t("create_group_slug")}</label>
             <div className="flex items-center bg-hate-light border border-gray-700 rounded-lg overflow-hidden">
               <span className="px-3 text-gray-600 text-sm">/communities/</span>
               <input
@@ -95,7 +96,7 @@ export default function CreateCommunityPage() {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Descripción</label>
+            <label className="block text-sm text-gray-400 mb-1">{t("create_group_description")}</label>
             <textarea
               rows={3} maxLength={500}
               value={form.description}
@@ -108,7 +109,7 @@ export default function CreateCommunityPage() {
 
           <button type="submit" disabled={saving || uploading}
             className="w-full bg-hate-red hover:bg-red-700 text-white font-bold py-3 rounded-xl transition disabled:opacity-50">
-            {saving ? "Creando..." : "Crear grupo"}
+            {saving ? t("create_group_creating") : t("create_group_submit")}
           </button>
         </form>
       </div>
