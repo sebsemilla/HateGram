@@ -1,0 +1,158 @@
+HATGRAM — IMPLEMENTED FEATURES
+================================
+Last updated: 2026-05-31
+
+=====================================
+BACKEND (FastAPI + PostgreSQL)
+=====================================
+
+AUTH
+  - POST /auth/register     — Create account (username, email, password). Returns JWT.
+  - POST /auth/login        — Login. Returns JWT.
+
+PROFILES
+  - GET    /profiles/me             — Get authenticated user's profile (includes badges).
+  - PATCH  /profiles/me             — Update display name, bio, location, website, avatar, banner.
+  - GET    /profiles/{username}     — Get any user's public profile (includes badges).
+  - GET    /profiles/               — List all active user profiles.
+
+POSTS
+  - POST   /posts/                  — Create a post (text, image, link, or repost). Optionally assign to a community.
+  - GET    /posts/feed              — Chronological feed (global).
+  - GET    /posts/user/{username}   — List posts by a specific user.
+  - DELETE /posts/{post_id}         — Delete own post (or admin).
+  - Repost — Supported via repost_of_id field on post creation.
+  - Link preview metadata — Stored on the post (link_url, link_title, link_description, link_image).
+
+IMAGE UPLOAD
+  - POST /upload/image   — Upload an image file. Returns a served static URL.
+
+LINK PREVIEW
+  - GET /preview/link?url=...   — Fetch Open Graph / meta tags from an external URL.
+
+COMMUNITIES
+  - GET    /communities/            — List communities (filterable by type and search query).
+  - GET    /communities/{slug}      — Get community details + member count + membership status.
+  - POST   /communities/            — Create a community (verified users only).
+  - POST   /communities/{slug}/join    — Join a community.
+  - DELETE /communities/{slug}/leave   — Leave a community.
+  - GET    /communities/{slug}/feed    — Chronological post feed for a community.
+
+FOLLOWS
+  - POST /follow/{username}          — Toggle follow/unfollow a user.
+  - GET  /follow/status/{username}   — Get follow status + follower count for a user.
+
+PINS
+  - POST /pins/{post_id}         — Toggle pin/unpin a post.
+  - GET  /pins/                  — List authenticated user's pinned posts.
+  - GET  /pins/user/{username}   — List pinned posts for any user.
+
+MESSAGES
+  - POST /messages/{username}   — Send a direct message (text or share a post).
+  - GET  /messages/{username}   — Get full DM thread with a user.
+  - GET  /messages/             — List all conversations (latest message per contact).
+
+FACTS (community fact-checking)
+  - GET  /facts/{post_id}   — Get fact vote results for a post (truth %, fake %).
+  - POST /facts/{post_id}   — Cast a fact vote: "truth" or "fake" (one vote per user per post).
+
+DEBATES
+  - GET  /debates/{post_id}        — Get debate details, vote counts, and user's current side.
+  - POST /debates/{post_id}        — Create a debate on a post with a duration in hours.
+  - POST /debates/{post_id}/vote   — Vote a side: "for" or "against" (one vote per user per debate).
+
+BADGES (computed on-the-fly, no separate table)
+  - Truther     — Awarded when a user has 3+ posts with links voted ≥70% truth by the community.
+  - Ethic Force — Awarded when a user has cast 5+ truth votes or debate votes on others' content.
+  - Exposed via GET /profiles/me and GET /profiles/{username} inside the badges array.
+
+REPORTS
+  - POST  /reports/                      — Report a post (with reason).
+  - GET   /admin/reports                 — List reports (filterable by status). Admin only.
+  - PATCH /admin/reports/{report_id}     — Update report status (pending / reviewed / dismissed). Admin only.
+
+ADMIN
+  - GET   /admin/stats                      — Platform stats (users, posts, communities, reports).
+  - GET   /admin/users                      — List all users with activity data.
+  - PATCH /admin/users/{user_id}/toggle-active  — Activate or deactivate a user account.
+  - POST  /admin/impersonate/{user_id}          — Generate a JWT to browse as another user.
+  - GET   /admin/api-keys                       — Get current AI API keys (OpenAI, etc.).
+  - PATCH /admin/api-keys                       — Update AI API keys.
+
+BOTS
+  - GET    /bots/                              — List all bots. Admin only.
+  - POST   /bots/                              — Create a single bot with persona and actions.
+  - POST   /bots/batch                         — Create multiple bots at once.
+  - PATCH  /bots/{bot_id}/toggle               — Enable or disable a bot.
+  - PATCH  /bots/{bot_id}/profile              — Update bot's display name, bio, avatar.
+  - PATCH  /bots/{bot_id}                      — Update bot metadata (name, personality, etc.).
+  - DELETE /bots/{bot_id}                      — Delete a bot.
+  - POST   /bots/{bot_id}/actions              — Add an action to a bot (post, like, comment, etc.).
+  - PATCH  /bots/{bot_id}/actions/{action_id}  — Update an existing bot action.
+  - DELETE /bots/{bot_id}/actions/{action_id}  — Delete a bot action.
+  - POST   /bots/{bot_id}/run                  — Trigger a bot to run immediately.
+  - Scheduler — Bots run automatically on an APScheduler cron. Started/stopped with the app lifecycle.
+
+
+=====================================
+WEB (Next.js — App Router)
+=====================================
+
+PAGES
+  - /               — Landing / redirect to feed or login.
+  - /login          — Login form with JWT storage in localStorage.
+  - /register       — Registration form.
+  - /feed           — Main app view. Includes:
+                        · Main feed (chronological global posts).
+                        · Community selector: Gay, Lesbiana, Hetero (join/leave + community feed).
+                        · Onlys section: searchable fan group grid with links to each community.
+                        · Impersonation banner when browsing as another user.
+  - /profile/[username]   — Full profile view. Includes:
+                              · Banner + avatar display.
+                              · Display name, bio, location, website.
+                              · Follower / following counts.
+                              · Badges rendered with color, icon, name, and score.
+                              · Follow / contact buttons for other users.
+                              · Highlights row (static UI placeholders).
+                              · Tabs: Photos (image posts grid), Videos (placeholder), Pinned posts.
+                              · Edit profile modal (display name, bio, location, website, avatar, banner).
+                              · Language selector inside edit modal.
+                              · FAB button to create a new post.
+  - /messages           — Conversations list (latest message per contact).
+  - /messages/[username] — Full DM thread view with send form.
+  - /communities/[slug]       — Community detail: members count, join/leave, post feed, create post.
+  - /communities/create       — Community creation form (verified users only).
+  - /feed/onlys               — Fan communities listing with search.
+  - /admin                    — Admin dashboard: stats, reports, user management, bot management.
+
+COMPONENTS
+  - PostCard         — Full post renderer. Supports image, text, link preview, repost, facts bar,
+                       debate bar, pin toggle, delete, share/copy link, report.
+  - CreatePostModal  — Post creation with text, image upload, link URL with live preview,
+                       and optional community assignment.
+  - LanguageSelector — Dropdown to switch interface language.
+
+FEATURES
+  - i18n (multilanguage via lib/i18n.ts and useLanguage hook).
+  - API client (lib/api.ts) covering all backend endpoints.
+  - JWT auth via localStorage.
+  - Admin impersonation mode with "return to my account" banner.
+
+
+=====================================
+MOBILE (Expo / React Native)
+=====================================
+
+PAGES
+  - /           — Splash/redirect screen.
+  - /login      — Login form with JWT via SecureStore.
+  - /register   — Registration form.
+  - /feed       — Basic post feed.
+  - /profile/[username]  — Profile view. Includes:
+                            · Avatar, display name, username, bio, location, website.
+                            · Badges rendered with icon, name, color, and score.
+                            · Edit profile form for own profile (display name, bio, location, website).
+
+API CLIENT
+  - lib/api.ts covers: auth (register/login), profiles (get, me, update).
+  - JWT stored with expo-secure-store.

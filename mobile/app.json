@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "HateGram",
+    "slug": "hategram",
+    "version": "1.0.0",
+    "scheme": "hategram",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0D0D0D"
+    },
+    "ios": { "supportsTablet": true },
+    "android": { "adaptiveIcon": { "backgroundColor": "#0D0D0D" } },
+    "plugins": ["expo-router", "expo-secure-store"]
+  }
+}
