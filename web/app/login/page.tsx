@@ -37,10 +37,11 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="bg-hate-gray rounded-xl p-6 space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">{t("username")}</label>
+            <label className="block text-sm text-gray-400 mb-1">{t("username_or_email")}</label>
             <input
               type="text"
               required
+              autoComplete="username"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
               className="w-full bg-hate-light border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-hate-red"
@@ -89,12 +90,17 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-gray-500 text-sm mt-4">
-          {t("no_account")}{" "}
-          <Link href="/register" className="text-hate-red hover:underline">
-            {t("go_register")}
+        <div className="flex flex-col items-center gap-2 mt-4">
+          <p className="text-gray-500 text-sm">
+            {t("no_account")}{" "}
+            <Link href="/register" className="text-hate-red hover:underline">
+              {t("go_register")}
+            </Link>
+          </p>
+          <Link href="/forgot-password" className="text-gray-600 hover:text-gray-400 text-xs transition">
+            {t("forgot_password")}
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   );

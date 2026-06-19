@@ -16,5 +16,7 @@ class User(Base):
     is_verified = Column(Boolean, default=False)
     is_fictitious = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    reset_token = Column(String(64), nullable=True, index=True)
+    reset_token_expires = Column(DateTime(timezone=True), nullable=True)
 
     profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")

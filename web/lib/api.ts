@@ -31,7 +31,24 @@ export const auth = {
     apiFetch("/auth/register", { method: "POST", body: JSON.stringify(data) }),
   login: (data: { username: string; password: string }) =>
     apiFetch("/auth/login", { method: "POST", body: JSON.stringify(data) }),
+  forgotPassword: (email: string) =>
+    apiFetch("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
+  resetPassword: (token: string, new_password: string) =>
+    apiFetch("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, new_password }) }),
+  logout: () =>
+    apiFetch("/auth/logout", { method: "POST" }).catch(() => {}),
 };
+
+export async function logout() {
+  await auth.logout();
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("_prev_token");
+    localStorage.removeItem("lang");
+    window.location.href = "/login";
+  }
+}
 
 export async function uploadImage(file: File): Promise<string> {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;

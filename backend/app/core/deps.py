@@ -6,6 +6,7 @@ from typing import Optional
 from app.db.database import get_db
 from app.core.security import decode_token
 from app.models.user import User
+from app.models.revoked_token import RevokedToken
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
@@ -20,7 +21,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     try:
         payload = decode_token(token)
         user_id: int = payload.get("sub")
+        jti: str = payload.get("jti")
         if user_id is None:
+            raise credentials_exception
+        if jti and db.query(RevokedToken).filter(RevokedToken.jti == jti).first():
             raise credentials_exception
     except JWTError:
         raise credentials_exception

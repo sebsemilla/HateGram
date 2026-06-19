@@ -34,10 +34,11 @@ export default function LoginScreen() {
       <Text style={s.subtitle}>La red social sin filtros</Text>
 
       <View style={s.card}>
-        <Text style={s.label}>Username</Text>
+        <Text style={s.label}>Username o email</Text>
         <TextInput
           style={s.input}
           autoCapitalize="none"
+          keyboardType="email-address"
           value={form.username}
           onChangeText={(v) => setForm({ ...form, username: v })}
           placeholderTextColor="#555"
