@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 
 from app.db.database import get_db
@@ -58,7 +58,7 @@ def _msg_out(msg: Message) -> dict:
 # ── Enviar mensaje ───────────────────────────────────────────────────────────
 
 class MessageCreate(BaseModel):
-    content: str
+    content: str = Field(min_length=1, max_length=2000)
     shared_post_id: Optional[int] = None
 
 

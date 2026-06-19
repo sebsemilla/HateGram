@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from app.db.database import get_db
 from app.models.community import Community, Membership
 from app.models.post import Post
@@ -16,11 +16,20 @@ router = APIRouter(prefix="/communities", tags=["communities"])
 
 # ── Schemas ────────────────────────────────────────────────────────────────
 
+SLUG_RE = __import__("re").compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+
 class CommunityCreate(BaseModel):
-    name: str
-    slug: str
-    description: Optional[str] = ""
-    image_url: Optional[str] = ""
+    name: str = Field(min_length=3, max_length=50)
+    slug: str = Field(min_length=3, max_length=50)
+    description: Optional[str] = Field(default="", max_length=300)
+    image_url: Optional[str] = Field(default="", max_length=2048)
+
+    @field_validator("slug")
+    @classmethod
+    def slug_valid(cls, v: str) -> str:
+        if not SLUG_RE.match(v):
+            raise ValueError("El slug solo puede contener letras minúsculas, números y guiones")
+        return v
 
 
 def _build_community(c: Community, member_count: int, is_member: bool) -> dict:

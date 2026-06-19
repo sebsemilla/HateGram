@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from app.db.database import get_db
 from app.models.comment import Comment, CommentVote
@@ -13,12 +13,12 @@ router = APIRouter(prefix="/comments", tags=["comments"])
 
 
 class CommentCreate(BaseModel):
-    content: str
+    content: str = Field(min_length=1, max_length=1000)
     parent_id: Optional[int] = None
 
 
 class VoteCreate(BaseModel):
-    vote: int  # +1 or -1
+    vote: int = Field(ge=-1, le=1)
 
 
 class CommentOut(BaseModel):

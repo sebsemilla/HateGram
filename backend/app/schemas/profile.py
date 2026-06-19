@@ -1,14 +1,14 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
 
 class ProfileUpdate(BaseModel):
-    display_name: Optional[str] = None
-    bio: Optional[str] = None
-    avatar_url: Optional[str] = None
-    banner_url: Optional[str] = None
-    website: Optional[str] = None
-    location: Optional[str] = None
+    display_name: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    bio: Optional[str] = Field(default=None, max_length=500)
+    avatar_url: Optional[str] = Field(default=None, max_length=2048)
+    banner_url: Optional[str] = Field(default=None, max_length=2048)
+    website: Optional[str] = Field(default=None, max_length=200)
+    location: Optional[str] = Field(default=None, max_length=100)
 
 
 class BadgeOut(BaseModel):
