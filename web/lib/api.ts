@@ -117,6 +117,7 @@ export const adminApi = {
     apiFetch(`/admin/reports/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
   users: () => apiFetch("/admin/users"),
   toggleUser: (id: number) => apiFetch(`/admin/users/${id}/toggle-active`, { method: "PATCH" }),
+  deletePost: (id: number) => apiFetch(`/admin/posts/${id}`, { method: "DELETE" }),
   impersonate: (id: number) => apiFetch(`/admin/impersonate/${id}`, { method: "POST" }),
 };
 

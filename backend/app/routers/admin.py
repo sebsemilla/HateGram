@@ -8,6 +8,7 @@ from app.db.database import get_db
 from app.models.user import User
 from app.models.post import Post
 from app.models.report import Report
+from app.models.profile import Profile
 from app.core.deps import get_admin_user
 from app.core.config import settings
 from app.core.security import create_access_token
@@ -45,16 +46,24 @@ def list_reports(
 
     result = []
     for r in reports:
-        result.append({
+        post = r.reported_post
+        reported_user = r.reported_user
+        entry = {
             "id": r.id,
             "reason": r.reason,
             "description": r.description,
             "status": r.status,
             "created_at": r.created_at.isoformat(),
             "reporter": r.reporter.username if r.reporter else None,
-            "reported_user": r.reported_user.username if r.reported_user else None,
+            "reported_user_id": r.reported_user_id,
+            "reported_user": reported_user.username if reported_user else None,
+            "reported_user_active": reported_user.is_active if reported_user else None,
             "reported_post_id": r.reported_post_id,
-        })
+            "reported_post_caption": (post.caption or "") if post else None,
+            "reported_post_image": (post.image_url or "") if post else None,
+            "reported_post_exists": post is not None,
+        }
+        result.append(entry)
     return result
 
 
@@ -157,6 +166,19 @@ def impersonate_user(
         "is_admin": user.is_admin,
         "is_fictitious": user.is_fictitious,
     }
+
+
+@router.delete("/posts/{post_id}", status_code=204)
+def admin_delete_post(
+    post_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+):
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post no encontrado")
+    db.delete(post)
+    db.commit()
 
 
 @router.patch("/users/{user_id}/toggle-active")

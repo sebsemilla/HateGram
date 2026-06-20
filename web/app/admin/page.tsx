@@ -101,6 +101,20 @@ export default function AdminPage() {
     setReports((prev) => prev.filter((r) => r.id !== id));
   }
 
+  async function handleDeletePost(reportId: number, postId: number) {
+    if (!confirm("¿Eliminar este post?")) return;
+    await adminApi.deletePost(postId);
+    await adminApi.updateReport(reportId, "resolved");
+    setReports((prev) => prev.filter((r) => r.id !== reportId));
+  }
+
+  async function handleBanUser(reportId: number, userId: number) {
+    if (!confirm("¿Desactivar (banear) este usuario?")) return;
+    await adminApi.toggleUser(userId);
+    await adminApi.updateReport(reportId, "resolved");
+    setReports((prev) => prev.filter((r) => r.id !== reportId));
+  }
+
   async function handleImpersonate(id: number) {
     const res = await adminApi.impersonate(id);
     // Guardar token y user del perfil destino
@@ -389,21 +403,25 @@ export default function AdminPage() {
                 <div className="space-y-3">
                   {reports.map((r) => (
                     <div key={r.id} className="bg-hate-gray rounded-xl p-4 border border-gray-800">
-                      <div className="flex items-start justify-between gap-4">
+                      {/* Header del reporte */}
+                      <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${STATUS_COLORS[r.status]}`}>
                               {r.status === "pending" ? "Pendiente" : r.status === "resolved" ? "Resuelto" : "Descartado"}
                             </span>
                             <span className="text-xs bg-hate-light text-gray-300 px-2 py-0.5 rounded-full">
                               {REASON_LABELS[r.reason] || r.reason}
                             </span>
+                            {r.reported_user && !r.reported_user_active && (
+                              <span className="text-xs bg-red-900/40 text-red-400 px-2 py-0.5 rounded-full">Usuario baneado</span>
+                            )}
                           </div>
                           <p className="text-white text-sm">
                             <span className="text-hate-red font-semibold">@{r.reporter}</span>
                             {" reportó a "}
                             <span className="font-semibold">
-                              {r.reported_user ? `@${r.reported_user}` : `Post #${r.reported_post_id}`}
+                              {r.reported_user ? `@${r.reported_user}` : `post #${r.reported_post_id}`}
                             </span>
                           </p>
                           {r.description && (
@@ -413,23 +431,63 @@ export default function AdminPage() {
                             {new Date(r.created_at).toLocaleDateString("es", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                           </p>
                         </div>
-                        {r.status === "pending" && (
-                          <div className="flex gap-2 flex-shrink-0">
-                            <button
-                              onClick={() => handleReportAction(r.id, "resolved")}
-                              className="text-xs bg-green-500/20 hover:bg-green-500/40 text-green-400 px-3 py-1.5 rounded-lg transition font-semibold"
-                            >
-                              Resolver
-                            </button>
-                            <button
-                              onClick={() => handleReportAction(r.id, "dismissed")}
-                              className="text-xs bg-gray-500/20 hover:bg-gray-500/40 text-gray-400 px-3 py-1.5 rounded-lg transition font-semibold"
-                            >
-                              Descartar
-                            </button>
-                          </div>
-                        )}
                       </div>
+
+                      {/* Contenido del post reportado */}
+                      {r.reported_post_id && (
+                        <div className="bg-hate-light rounded-lg p-3 mb-3 border border-gray-700">
+                          {!r.reported_post_exists ? (
+                            <p className="text-gray-600 text-xs italic">Post eliminado</p>
+                          ) : (
+                            <>
+                              {r.reported_post_image && (
+                                <img src={r.reported_post_image.startsWith("http") ? r.reported_post_image : `http://localhost:8000${r.reported_post_image}`}
+                                  className="w-full max-h-40 object-cover rounded-lg mb-2" />
+                              )}
+                              {r.reported_post_caption && (
+                                <p className="text-gray-300 text-sm line-clamp-3">{r.reported_post_caption}</p>
+                              )}
+                              {!r.reported_post_caption && !r.reported_post_image && (
+                                <p className="text-gray-600 text-xs italic">Post sin texto ni imagen</p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Acciones */}
+                      {r.status === "pending" && (
+                        <div className="flex gap-2 flex-wrap">
+                          {r.reported_post_id && r.reported_post_exists && (
+                            <button
+                              onClick={() => handleDeletePost(r.id, r.reported_post_id)}
+                              className="text-xs bg-red-900/30 hover:bg-red-900/60 text-red-400 px-3 py-1.5 rounded-lg transition font-semibold"
+                            >
+                              🗑 Eliminar post
+                            </button>
+                          )}
+                          {r.reported_user_id && r.reported_user_active && (
+                            <button
+                              onClick={() => handleBanUser(r.id, r.reported_user_id)}
+                              className="text-xs bg-orange-900/30 hover:bg-orange-900/60 text-orange-400 px-3 py-1.5 rounded-lg transition font-semibold"
+                            >
+                              🔨 Banear usuario
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleReportAction(r.id, "resolved")}
+                            className="text-xs bg-green-500/20 hover:bg-green-500/40 text-green-400 px-3 py-1.5 rounded-lg transition font-semibold"
+                          >
+                            ✓ Resolver
+                          </button>
+                          <button
+                            onClick={() => handleReportAction(r.id, "dismissed")}
+                            className="text-xs bg-gray-500/20 hover:bg-gray-500/40 text-gray-400 px-3 py-1.5 rounded-lg transition font-semibold"
+                          >
+                            Descartar
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
