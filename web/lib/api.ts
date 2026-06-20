@@ -37,6 +37,8 @@ export const auth = {
     apiFetch("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, new_password }) }),
   logout: () =>
     apiFetch("/auth/logout", { method: "POST" }).catch(() => {}),
+  resendVerification: () =>
+    apiFetch("/auth/resend-verification", { method: "POST" }),
 };
 
 export const searchApi = {

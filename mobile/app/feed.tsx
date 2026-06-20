@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { postApi, communityApi, storyApi, reactionsApi, commentsApi, reportApi, StoryGroup, ReactionsOut, CommentOut } from "../lib/api";
+import { postApi, communityApi, storyApi, reactionsApi, commentsApi, reportApi, auth, StoryGroup, ReactionsOut, CommentOut } from "../lib/api";
 
 type Section = "main" | "onlys" | "gay" | "lesbiana" | "hetero" | "historys" | null;
 
@@ -23,6 +23,8 @@ const ORIENTATION_SLUGS: Partial<Record<string, string>> = {
 export default function FeedScreen() {
   const router = useRouter();
   const [user, setUser]                   = useState<any>(null);
+  const [verifyBannerDismissed, setVerifyBannerDismissed] = useState(false);
+  const [verifyResent, setVerifyResent]   = useState(false);
   const [section, setSection]             = useState<Section>(null);
   const [posts, setPosts]                 = useState<any[]>([]);
   const [fanGroups, setFanGroups]         = useState<any[]>([]);
@@ -166,6 +168,28 @@ export default function FeedScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Banner verificación de email */}
+      {user && !user.is_verified && !verifyBannerDismissed && (
+        <View style={s.verifyBanner}>
+          <Text style={s.verifyIcon}>⚠️</Text>
+          <View style={{ flex: 1 }}>
+            {verifyResent ? (
+              <Text style={s.verifyText}>Email reenviado. Revisá tu bandeja.</Text>
+            ) : (
+              <>
+                <Text style={s.verifyTitle}>Verificá tu email</Text>
+                <TouchableOpacity onPress={async () => { await auth.resendVerification(); setVerifyResent(true); }}>
+                  <Text style={s.verifyLink}>Reenviar email de verificación</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+          <TouchableOpacity onPress={() => setVerifyBannerDismissed(true)}>
+            <Text style={s.verifyClose}>×</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Main Feed / Historys buttons */}
       <View style={s.tabRow}>
@@ -788,6 +812,14 @@ const s = StyleSheet.create({
   headerUser:     { color: "#ccc", fontSize: 13 },
   headerIcon:     { fontSize: 16 },
   logoutBtn:      { color: "#555", fontSize: 13 },
+
+  // Verify banner
+  verifyBanner:   { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "rgba(120,80,0,0.3)", borderWidth: 1, borderColor: "rgba(180,120,0,0.4)", borderRadius: 14, marginHorizontal: 12, marginTop: 10, padding: 12 },
+  verifyIcon:     { fontSize: 16, marginTop: 1 },
+  verifyTitle:    { color: "#fbbf24", fontWeight: "600", fontSize: 13 },
+  verifyText:     { color: "#fbbf24", fontSize: 13 },
+  verifyLink:     { color: "#f59e0b", fontSize: 12, textDecorationLine: "underline", marginTop: 2 },
+  verifyClose:    { color: "#92400e", fontSize: 22, lineHeight: 24, paddingLeft: 4 },
 
   // Tabs
   tabRow:         { flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingTop: 10 },

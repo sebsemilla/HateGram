@@ -90,6 +90,26 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     return RedirectResponse(url=f"{settings.FRONTEND_URL}/login?verified=1")
 
 
+# ── Reenviar verificación ────────────────────────────────────────────────────
+
+@router.post("/resend-verification", status_code=200)
+def resend_verification(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.is_verified:
+        return {"message": "Tu cuenta ya está verificada"}
+
+    verify_token = secrets.token_urlsafe(32)
+    verify_expires = datetime.now(timezone.utc) + timedelta(hours=VERIFY_TOKEN_TTL_HOURS)
+    current_user.reset_token = verify_token
+    current_user.reset_token_expires = verify_expires
+    db.commit()
+
+    send_verification_email(current_user.email, current_user.username, verify_token)
+    return {"message": "Email de verificación reenviado"}
+
+
 # ── Login ────────────────────────────────────────────────────────────────────
 
 @router.post("/login", response_model=Token)

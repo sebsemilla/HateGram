@@ -25,6 +25,8 @@ export const auth = {
     apiFetch("/auth/register", { method: "POST", body: JSON.stringify(data) }),
   login: (data: { username: string; password: string }) =>
     apiFetch("/auth/login", { method: "POST", body: JSON.stringify(data) }),
+  resendVerification: () =>
+    apiFetch("/auth/resend-verification", { method: "POST" }),
 };
 
 // ── Profiles ──────────────────────────────────────────────────────

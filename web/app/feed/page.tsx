@@ -6,6 +6,7 @@ import { postApi, communityApi, storyApi, StoryGroup } from "@/lib/api";
 import PostCard from "@/components/PostCard";
 import FAB from "@/components/FAB";
 import NotificationBell from "@/components/NotificationBell";
+import VerifyBanner from "@/components/VerifyBanner";
 import { useLanguage } from "@/hooks/useLanguage";
 
 type Section = "main" | "onlys" | "gay" | "lesbiana" | "hetero" | "historys";
@@ -166,6 +167,9 @@ export default function FeedPage() {
           <button onClick={logout} className="text-gray-500 hover:text-hate-red text-sm transition">{t("logout")}</button>
         </div>
       </nav>
+
+      {/* Banner verificación */}
+      {user && !user.is_verified && <VerifyBanner />}
 
       {/* Main Feed + Historys */}
       <div className="w-full max-w-[430px] px-3 pt-3 flex-shrink-0 flex gap-2">
