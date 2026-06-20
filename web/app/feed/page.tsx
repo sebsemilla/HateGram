@@ -5,6 +5,7 @@ import Link from "next/link";
 import { postApi, communityApi, storyApi, StoryGroup } from "@/lib/api";
 import PostCard from "@/components/PostCard";
 import FAB from "@/components/FAB";
+import NotificationBell from "@/components/NotificationBell";
 import { useLanguage } from "@/hooks/useLanguage";
 
 type Section = "main" | "onlys" | "gay" | "lesbiana" | "hetero" | "historys";
@@ -153,6 +154,7 @@ export default function FeedPage() {
             </Link>
           )}
           <Link href="/messages" className="text-gray-400 hover:text-white transition text-xl leading-none">✉️</Link>
+          <NotificationBell />
           {user?.is_admin && (
             <Link href="/admin" className="bg-hate-red/20 hover:bg-hate-red/40 text-hate-red text-xs font-bold px-3 py-1.5 rounded-full transition">
               ⚙️ Admin

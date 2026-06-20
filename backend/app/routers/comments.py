@@ -8,6 +8,7 @@ from app.models.comment import Comment, CommentVote
 from app.models.post import Post
 from app.models.user import User
 from app.core.deps import get_current_user, get_current_user_optional
+from app.core.notif import push
 
 router = APIRouter(prefix="/comments", tags=["comments"])
 
@@ -99,6 +100,31 @@ def create_comment(
         parent_id=data.parent_id,
     )
     db.add(comment)
+    db.flush()
+
+    actor_name = current_user.username
+    if data.parent_id:
+        parent = db.query(Comment).filter(Comment.id == data.parent_id).first()
+        if parent and parent.user_id != current_user.id:
+            push(db, user_id=parent.user_id, actor_id=current_user.id,
+                 type="reply", body=f"{actor_name} respondió tu comentario",
+                 entity_type="post", entity_id=post_id, link="/feed")
+    else:
+        if post.user_id != current_user.id:
+            push(db, user_id=post.user_id, actor_id=current_user.id,
+                 type="comment", body=f"{actor_name} comentó tu post",
+                 entity_type="post", entity_id=post_id, link="/feed")
+
+    # Menciones @username
+    import re
+    for mentioned in set(re.findall(r"@(\w+)", data.content)):
+        from app.models.user import User as UserModel
+        target = db.query(UserModel).filter(UserModel.username == mentioned).first()
+        if target and target.id != current_user.id:
+            push(db, user_id=target.id, actor_id=current_user.id,
+                 type="mention", body=f"{actor_name} te mencionó en un comentario",
+                 entity_type="post", entity_id=post_id, link="/feed")
+
     db.commit()
     db.refresh(comment)
     return _build_comment_out(comment, current_user, db)

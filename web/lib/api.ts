@@ -39,6 +39,13 @@ export const auth = {
     apiFetch("/auth/logout", { method: "POST" }).catch(() => {}),
 };
 
+export const notifApi = {
+  list: () => apiFetch("/notifications/"),
+  unreadCount: () => apiFetch("/notifications/unread-count"),
+  markAllRead: () => apiFetch("/notifications/read-all", { method: "PATCH" }),
+  markRead: (id: number) => apiFetch(`/notifications/${id}/read`, { method: "PATCH" }),
+};
+
 export async function logout() {
   await auth.logout();
   if (typeof window !== "undefined") {

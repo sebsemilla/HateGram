@@ -4,6 +4,7 @@ from app.db.database import get_db
 from app.models.user import User
 from app.models.follow import Follow
 from app.core.deps import get_current_user
+from app.core.notif import push
 
 router = APIRouter(prefix="/follow", tags=["follow"])
 
@@ -22,6 +23,10 @@ def toggle_follow(username: str, db: Session = Depends(get_db), current_user: Us
         return {"following": False, "follower_count": followers}
     follow = Follow(follower_id=current_user.id, following_id=target.id)
     db.add(follow)
+    push(db, user_id=target.id, actor_id=current_user.id,
+         type="follow", body=f"{current_user.username} te empezó a seguir",
+         entity_type="profile", entity_id=current_user.id,
+         link=f"/profile/{current_user.username}")
     db.commit()
     followers = db.query(Follow).filter(Follow.following_id == target.id).count()
     return {"following": True, "follower_count": followers}

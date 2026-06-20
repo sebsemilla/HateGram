@@ -16,6 +16,7 @@ from app.core.security import hash_password, verify_password, create_access_toke
 from app.core.config import settings
 from app.core.deps import get_current_user
 from app.core.email import send_verification_email, send_reset_email
+from app.core.notif import push
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -55,6 +56,13 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
     db.refresh(user)
 
     send_verification_email(data.email, data.username, verify_token)
+
+    push(db, user_id=user.id, type="welcome",
+         body=f"¡Bienvenido a HateGram, {data.username}! Completá tu perfil para que te encuentren.")
+    push(db, user_id=user.id, type="verify",
+         body="Verificá tu email para activar todas las funciones de tu cuenta.",
+         link="/verify-email")
+    db.commit()
 
     token = create_access_token({"sub": str(user.id)})
     return Token(access_token=token, user=UserOut.model_validate(user))
@@ -249,6 +257,9 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
             avatar_url=google_picture,
         )
         db.add(profile)
+        db.flush()
+        push(db, user_id=user.id, type="welcome",
+             body=f"¡Bienvenido a HateGram, {username}! Completá tu perfil para que te encuentren.")
         db.commit()
         db.refresh(user)
     else:

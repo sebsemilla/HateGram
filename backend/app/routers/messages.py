@@ -18,6 +18,7 @@ from app.models.user import User
 from app.models.message import Message
 from app.models.post import Post
 from app.core.deps import get_current_user
+from app.core.notif import push
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -102,6 +103,10 @@ def send_message(
         shared_post_id=data.shared_post_id,
     )
     db.add(msg)
+    push(db, user_id=target.id, actor_id=current_user.id,
+         type="message", body=f"{current_user.username} te envió un mensaje",
+         entity_type="message", entity_id=current_user.id,
+         link=f"/messages/{current_user.username}")
     db.commit()
     db.refresh(msg)
     return _msg_out(msg)

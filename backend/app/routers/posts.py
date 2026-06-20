@@ -10,6 +10,7 @@ from app.models.debate import Debate
 from app.models.pin import PinPost
 from app.schemas.post import PostCreate, PostOut
 from app.core.deps import get_current_user
+from app.core.notif import push
 
 router = APIRouter(prefix="/posts", tags=["posts"])
 
@@ -108,6 +109,16 @@ def create_post(
         repost_of_id=repost_of_id,
     )
     db.add(post)
+    db.flush()
+
+    # Notificar al autor original si es repost
+    if repost_of_id:
+        original = db.query(Post).filter(Post.id == repost_of_id).first()
+        if original:
+            push(db, user_id=original.user_id, actor_id=current_user.id,
+                 type="repost", body=f"{current_user.username} reposteó tu publicación",
+                 entity_type="post", entity_id=original.id, link="/feed")
+
     db.commit()
     db.refresh(post)
 

@@ -7,7 +7,7 @@ from sqlalchemy.exc import OperationalError
 from app.db.database import Base, engine
 from app.routers import auth, profiles, upload, posts, preview, reports, admin, communities, facts, debates
 from app.routers import bots
-from app.routers import pins, follows, messages, stories, comments, reactions
+from app.routers import pins, follows, messages, stories, comments, reactions, notifications
 from app.scheduler import scheduler
 
 
@@ -58,6 +58,7 @@ app.include_router(messages.router)
 app.include_router(stories.router)
 app.include_router(comments.router)
 app.include_router(reactions.router)
+app.include_router(notifications.router)
 
 
 @app.get("/")
