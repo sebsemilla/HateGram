@@ -197,3 +197,10 @@ export const searchApi = {
     apiFetch(`/search/?q=${encodeURIComponent(q)}&type=${type}`),
   follow: (username: string) => apiFetch(`/follow/${username}`, { method: "POST" }),
 };
+
+export const notifApi = {
+  list: () => apiFetch("/notifications/"),
+  unreadCount: (): Promise<{ count: number }> => apiFetch("/notifications/unread-count"),
+  markAllRead: () => apiFetch("/notifications/read-all", { method: "PATCH" }),
+  markRead: (id: number) => apiFetch(`/notifications/${id}/read`, { method: "PATCH" }),
+};

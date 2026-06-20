@@ -6,6 +6,7 @@ import {
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { postApi, communityApi, storyApi, reactionsApi, commentsApi, reportApi, auth, StoryGroup, ReactionsOut, CommentOut } from "../lib/api";
+import NotificationBell from "../components/NotificationBell";
 
 type Section = "main" | "onlys" | "gay" | "lesbiana" | "hetero" | "historys" | null;
 
@@ -163,6 +164,7 @@ export default function FeedScreen() {
           <TouchableOpacity onPress={() => router.push("/search" as any)}>
             <Text style={s.headerIcon}>🔍</Text>
           </TouchableOpacity>
+          <NotificationBell />
           <TouchableOpacity onPress={logout}>
             <Text style={s.logoutBtn}>Salir</Text>
           </TouchableOpacity>
