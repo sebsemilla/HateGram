@@ -14,6 +14,7 @@ function CallbackHandler() {
       try {
         localStorage.setItem("token", token);
         localStorage.setItem("user", userJson);
+        localStorage.setItem("has_visited", "1");
       } catch {}
     }
     router.replace("/feed");

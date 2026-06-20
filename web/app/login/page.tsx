@@ -21,6 +21,7 @@ export default function LoginPage() {
       const data = await auth.login(form);
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("has_visited", "1");
       router.push("/feed");
     } catch (err: any) {
       setError(err.message);

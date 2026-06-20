@@ -39,6 +39,7 @@ export default function RegisterPage() {
       const data = await auth.register({ ...form, country, membership_type });
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("has_visited", "1");
       localStorage.removeItem("onboarding_country");
       localStorage.removeItem("onboarding_membership");
       router.push("/onboarding/interests");

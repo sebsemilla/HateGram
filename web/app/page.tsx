@@ -7,8 +7,11 @@ export default function LandingPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = localStorage.getItem("token");
+    const hasVisited = localStorage.getItem("has_visited");
     if (token) router.replace("/feed");
+    else if (hasVisited) router.replace("/login");
+    // Si no tiene token ni ha visitado antes → muestra la landing
   }, [router]);
 
   return (
