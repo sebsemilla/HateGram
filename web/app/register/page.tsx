@@ -34,10 +34,14 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      const data = await auth.register(form);
+      const country = localStorage.getItem("onboarding_country") || "";
+      const membership_type = localStorage.getItem("onboarding_membership") || "beta_free";
+      const data = await auth.register({ ...form, country, membership_type });
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      router.push("/feed");
+      localStorage.removeItem("onboarding_country");
+      localStorage.removeItem("onboarding_membership");
+      router.push("/onboarding/interests");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -48,6 +52,14 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-sm">
+        {/* Progress (solo si viene del onboarding) */}
+        {typeof window !== "undefined" && localStorage.getItem("onboarding_country") !== null && (
+          <div className="flex gap-1.5 mb-6">
+            <div className="h-1 flex-1 rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-600" />
+            <div className="h-1 flex-1 rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-600" />
+            <div className="h-1 flex-1 rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-600" />
+          </div>
+        )}
         <h1 className="text-4xl font-black text-center mb-2 bg-gradient-to-r from-cyan-400 to-fuchsia-600 bg-clip-text text-transparent">feedpod</h1>
         <p className="text-center text-gray-400 mb-8 text-sm">{t("register_subtitle")}</p>
 

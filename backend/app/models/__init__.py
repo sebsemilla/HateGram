@@ -9,3 +9,4 @@ from app.models.comment import Comment, CommentVote
 from app.models.post_reaction import PostReaction
 from app.models.revoked_token import RevokedToken
 from app.models.notification import Notification
+from app.models.user_interest import UserInterest

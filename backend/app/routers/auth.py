@@ -40,17 +40,21 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
     verify_token = secrets.token_urlsafe(32)
     verify_expires = datetime.now(timezone.utc) + timedelta(hours=VERIFY_TOKEN_TTL_HOURS)
 
+    valid_memberships = ("beta_free", "lifetime_pending", "tester")
+    membership = data.membership_type if data.membership_type in valid_memberships else "beta_free"
+
     user = User(
         username=data.username,
         email=data.email,
         hashed_password=hash_password(data.password),
         reset_token=verify_token,
         reset_token_expires=verify_expires,
+        membership_type=membership,
     )
     db.add(user)
     db.flush()
 
-    profile = Profile(user_id=user.id, display_name=data.username)
+    profile = Profile(user_id=user.id, display_name=data.username, country=data.country or "")
     db.add(profile)
     db.commit()
     db.refresh(user)

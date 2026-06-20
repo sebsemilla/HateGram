@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from datetime import datetime
 
@@ -9,6 +10,8 @@ class UserRegister(BaseModel):
     username: str = Field(min_length=3, max_length=30)
     email: EmailStr
     password: str = Field(min_length=6, max_length=128)
+    country: Optional[str] = Field(default="", max_length=80)
+    membership_type: Optional[str] = "beta_free"  # beta_free | lifetime_pending | tester
 
     @field_validator("username")
     @classmethod
@@ -38,6 +41,7 @@ class UserOut(BaseModel):
     email: str
     is_admin: bool = False
     is_verified: bool = False
+    membership_type: str = "beta_free"
     created_at: datetime
 
     model_config = {"from_attributes": True}

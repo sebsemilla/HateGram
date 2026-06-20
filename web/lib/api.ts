@@ -41,6 +41,13 @@ export const auth = {
     apiFetch("/auth/resend-verification", { method: "POST" }),
 };
 
+export const onboardingApi = {
+  betaSpots: () => apiFetch("/onboarding/beta-spots"),
+  saveInterests: (interests: string[]) =>
+    apiFetch("/onboarding/interests", { method: "POST", body: JSON.stringify({ interests }) }),
+  getInterests: () => apiFetch("/onboarding/interests"),
+};
+
 export const searchApi = {
   search: (q: string, type: "users" | "posts" | "all" = "all") =>
     apiFetch(`/search/?q=${encodeURIComponent(q)}&type=${type}`),

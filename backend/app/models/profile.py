@@ -15,6 +15,7 @@ class Profile(Base):
     banner_url = Column(String(500), default="")
     website = Column(String(255), default="")
     location = Column(String(100), default="")
+    country = Column(String(80), default="")
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
                         onupdate=lambda: datetime.now(timezone.utc))
 

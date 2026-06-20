@@ -18,5 +18,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     reset_token = Column(String(64), nullable=True, index=True)
     reset_token_expires = Column(DateTime(timezone=True), nullable=True)
+    membership_type = Column(String(20), default="beta_free", nullable=False)  # beta_free | lifetime_pending | tester
 
     profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    interests = relationship("UserInterest", back_populates="user", cascade="all, delete-orphan")
