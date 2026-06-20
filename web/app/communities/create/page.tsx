@@ -50,7 +50,7 @@ export default function CreateCommunityPage() {
     <div className="min-h-screen bg-hate-dark">
       <nav className="bg-hate-gray border-b border-gray-800 px-4 py-3 flex items-center gap-3 sticky top-0 z-20">
         <Link href="/feed" className="text-gray-400 hover:text-white text-sm">{t("back_feed")}</Link>
-        <span className="text-xl font-black text-hate-red">HateGram</span>
+        <span className="text-xl font-black bg-gradient-to-r from-cyan-400 to-fuchsia-600 bg-clip-text text-transparent">feedpod</span>
       </nav>
 
       <div className="max-w-md mx-auto px-4 py-8">

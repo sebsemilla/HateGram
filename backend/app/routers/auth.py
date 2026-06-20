@@ -58,7 +58,7 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
     send_verification_email(data.email, data.username, verify_token)
 
     push(db, user_id=user.id, type="welcome",
-         body=f"¡Bienvenido a HateGram, {data.username}! Completá tu perfil para que te encuentren.")
+         body=f"¡Bienvenido a feedpod, {data.username}! Completá tu perfil para que te encuentren.")
     push(db, user_id=user.id, type="verify",
          body="Verificá tu email para activar todas las funciones de tu cuenta.",
          link="/verify-email")
@@ -259,7 +259,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         db.add(profile)
         db.flush()
         push(db, user_id=user.id, type="welcome",
-             body=f"¡Bienvenido a HateGram, {username}! Completá tu perfil para que te encuentren.")
+             body=f"¡Bienvenido a feedpod, {username}! Completá tu perfil para que te encuentren.")
         db.commit()
         db.refresh(user)
     else:

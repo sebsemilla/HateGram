@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     print("Bot scheduler detenido.")
 
 
-app = FastAPI(title="HateGram API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="feedpod API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -63,4 +63,4 @@ app.include_router(notifications.router)
 
 @app.get("/")
 def health():
-    return {"status": "ok", "app": "HateGram API"}
+    return {"status": "ok", "app": "feedpod API"}

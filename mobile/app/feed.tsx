@@ -151,7 +151,7 @@ export default function FeedScreen() {
 
       {/* Header */}
       <View style={s.header}>
-        <Text style={s.logo}>HateGram</Text>
+        <Text style={s.logo}>feedpod</Text>
         <View style={s.headerRight}>
           {user && (
             <TouchableOpacity onPress={() => router.push(`/profile/${user.username}`)}>
@@ -643,7 +643,7 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: number }
       <View style={s.actionRow}>
         <TouchableOpacity
           style={s.actionBtn}
-          onPress={() => Share.share({ message: post.caption ? `${post.caption}${post.image_url ? `\n${post.image_url}` : ""}` : (post.image_url ?? "Mirá este post en HateGram") })}
+          onPress={() => Share.share({ message: post.caption ? `${post.caption}${post.image_url ? `\n${post.image_url}` : ""}` : (post.image_url ?? "Mirá este post en feedpod") })}
         >
           <Text style={s.actionBtnText}>🔁 Compartir</Text>
         </TouchableOpacity>

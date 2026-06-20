@@ -273,7 +273,7 @@ export default function ProfilePage() {
       {/* Navbar */}
       <nav className="bg-hate-gray border-b border-gray-800 px-4 py-3 flex items-center gap-4 sticky top-0 z-20">
         <Link href="/feed" className="text-gray-400 hover:text-white transition text-sm">← Feed</Link>
-        <span className="text-xl font-black text-hate-red">HateGram</span>
+        <span className="text-xl font-black bg-gradient-to-r from-cyan-400 to-fuchsia-600 bg-clip-text text-transparent">feedpod</span>
       </nav>
 
       <div className="max-w-2xl mx-auto">

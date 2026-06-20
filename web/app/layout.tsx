@@ -3,7 +3,7 @@ import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 
 export const metadata: Metadata = {
-  title: "HateGram",
+  title: "feedpod",
   description: "La red social sin filtros",
 };
 

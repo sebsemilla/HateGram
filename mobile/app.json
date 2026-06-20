@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "HateGram",
-    "slug": "hategram",
+    "name": "feedpod",
+    "slug": "feedpod",
     "version": "1.0.0",
-    "scheme": "hategram",
+    "scheme": "feedpod",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",

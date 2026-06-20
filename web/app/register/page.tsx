@@ -48,7 +48,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-sm">
-        <h1 className="text-4xl font-black text-hate-red text-center mb-2">HateGram</h1>
+        <h1 className="text-4xl font-black text-center mb-2 bg-gradient-to-r from-cyan-400 to-fuchsia-600 bg-clip-text text-transparent">feedpod</h1>
         <p className="text-center text-gray-400 mb-8 text-sm">{t("register_subtitle")}</p>
 
         {/* Selector de idioma */}

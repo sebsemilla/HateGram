@@ -30,7 +30,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={s.container}>
-      <Text style={s.logo}>HateGram</Text>
+      <Text style={s.logo}>feedpod</Text>
       <Text style={s.subtitle}>La red social sin filtros</Text>
 
       <View style={s.card}>

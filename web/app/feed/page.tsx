@@ -146,7 +146,7 @@ export default function FeedPage() {
 
       {/* Navbar */}
       <nav className="w-full max-w-[430px] bg-hate-gray border-b border-gray-800 px-4 py-3 flex items-center justify-between flex-shrink-0">
-        <span className="text-2xl font-black text-hate-red">HateGram</span>
+        <span className="text-2xl font-black bg-gradient-to-r from-cyan-400 to-fuchsia-600 bg-clip-text text-transparent">feedpod</span>
         <div className="flex items-center gap-3">
           {user && (
             <Link href={`/profile/${user.username}`} className="text-gray-300 hover:text-white text-sm">

@@ -7,7 +7,7 @@ from app.models.user import User
 router = APIRouter(prefix="/preview", tags=["preview"])
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; HateGramBot/1.0)",
+    "User-Agent": "Mozilla/5.0 (compatible; feedpodBot/1.0)",
     "Accept": "text/html,application/xhtml+xml",
 }
 

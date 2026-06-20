@@ -32,7 +32,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-4xl font-black text-hate-red text-center mb-2">HateGram</h1>
+        <h1 className="text-4xl font-black text-center mb-2 bg-gradient-to-r from-cyan-400 to-fuchsia-600 bg-clip-text text-transparent">feedpod</h1>
         <p className="text-center text-gray-400 mb-8 text-sm">{t("login_subtitle")}</p>
 
         <form onSubmit={handleSubmit} className="bg-hate-gray rounded-xl p-6 space-y-4">

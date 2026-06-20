@@ -3,7 +3,7 @@ from app.core.config import settings
 
 resend.api_key = settings.RESEND_API_KEY
 
-FROM_ADDRESS = "HateGram <onboarding@resend.dev>"
+FROM_ADDRESS = "feedpod <onboarding@resend.dev>"
 
 
 def send_verification_email(to_email: str, username: str, token: str) -> bool:
@@ -12,10 +12,10 @@ def send_verification_email(to_email: str, username: str, token: str) -> bool:
         resend.Emails.send({
             "from": FROM_ADDRESS,
             "to": [to_email],
-            "subject": "Verificá tu cuenta en HateGram",
+            "subject": "Verificá tu cuenta en feedpod",
             "html": f"""
             <div style="font-family:sans-serif;max-width:480px;margin:auto;background:#111;color:#fff;padding:32px;border-radius:12px;">
-              <h1 style="color:#E63946;margin-bottom:4px;">HateGram</h1>
+              <h1 style="color:#E63946;margin-bottom:4px;">feedpod</h1>
               <p style="color:#aaa;margin-top:0;">La red social sin filtros</p>
               <hr style="border-color:#333;margin:24px 0;">
               <p>Hola <strong>{username}</strong>,</p>
@@ -43,10 +43,10 @@ def send_reset_email(to_email: str, username: str, token: str) -> bool:
         resend.Emails.send({
             "from": FROM_ADDRESS,
             "to": [to_email],
-            "subject": "Resetear contraseña — HateGram",
+            "subject": "Resetear contraseña — feedpod",
             "html": f"""
             <div style="font-family:sans-serif;max-width:480px;margin:auto;background:#111;color:#fff;padding:32px;border-radius:12px;">
-              <h1 style="color:#E63946;margin-bottom:4px;">HateGram</h1>
+              <h1 style="color:#E63946;margin-bottom:4px;">feedpod</h1>
               <p style="color:#aaa;margin-top:0;">La red social sin filtros</p>
               <hr style="border-color:#333;margin:24px 0;">
               <p>Hola <strong>{username}</strong>,</p>

@@ -30,7 +30,7 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={s.container}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={s.logo}>HateGram</Text>
+        <Text style={s.logo}>feedpod</Text>
         <Text style={s.subtitle}>Unite a la red sin filtros</Text>
 
         <View style={s.card}>
