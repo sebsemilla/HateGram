@@ -39,6 +39,11 @@ export const auth = {
     apiFetch("/auth/logout", { method: "POST" }).catch(() => {}),
 };
 
+export const searchApi = {
+  search: (q: string, type: "users" | "posts" | "all" = "all") =>
+    apiFetch(`/search/?q=${encodeURIComponent(q)}&type=${type}`),
+};
+
 export const notifApi = {
   list: () => apiFetch("/notifications/"),
   unreadCount: () => apiFetch("/notifications/unread-count"),

@@ -189,3 +189,9 @@ export const commentsApi = {
   vote: (commentId: number, vote: 1 | -1): Promise<CommentOut> =>
     apiFetch(`/comments/${commentId}/vote`, { method: "POST", body: JSON.stringify({ vote }) }),
 };
+
+export const searchApi = {
+  search: (q: string, type: "users" | "posts" | "all" = "all") =>
+    apiFetch(`/search/?q=${encodeURIComponent(q)}&type=${type}`),
+  follow: (username: string) => apiFetch(`/follow/${username}`, { method: "POST" }),
+};

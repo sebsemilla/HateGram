@@ -158,6 +158,9 @@ export default function FeedScreen() {
               <Text style={s.headerUser}>@{user.username}</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity onPress={() => router.push("/search" as any)}>
+            <Text style={s.headerIcon}>🔍</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={logout}>
             <Text style={s.logoutBtn}>Salir</Text>
           </TouchableOpacity>
@@ -783,6 +786,7 @@ const s = StyleSheet.create({
   logo:           { fontSize: 22, fontWeight: "900", color: RED },
   headerRight:    { flexDirection: "row", alignItems: "center", gap: 12 },
   headerUser:     { color: "#ccc", fontSize: 13 },
+  headerIcon:     { fontSize: 16 },
   logoutBtn:      { color: "#555", fontSize: 13 },
 
   // Tabs
